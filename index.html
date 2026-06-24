@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;font-size:13px;background:#f3f4f6;color:#1a1a1a}
@@ -76,14 +75,6 @@ textarea{resize:vertical}
 .sta.ok{background:#dcfce7;color:#166534;display:flex}
 .sta.err{background:#fee2e2;color:#dc2626;display:flex}
 .prev-wrap{background:#e5e7eb;padding:14px;border-radius:10px;overflow-x:auto}
-.srch-box{position:relative;display:inline-block;width:100%}
-.srch-drop{position:absolute;top:100%;left:0;min-width:320px;background:#fff;border:1px solid #d1d5db;border-radius:6px;max-height:220px;overflow-y:auto;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.12);display:none}
-.srch-item{padding:7px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:8px}
-.srch-item:hover{background:#f0fdf4}
-.si-sku{font-weight:700;color:#2d6a4f;min-width:80px;flex-shrink:0}
-.si-ten{flex:1;color:#374151;font-size:11px}
-.si-gia{color:#9ca3af;font-size:11px;flex-shrink:0}
-.db-saved{color:#059669;font-size:10px;margin-left:4px}
 </style>
 </head>
 <body>
@@ -107,7 +98,7 @@ textarea{resize:vertical}
     <button class="btn btn-w btn-sm" onclick="document.getElementById('cf').click()"><i class="fa-solid fa-upload"></i> Upload CSV</button>
     <button class="btn btn-w btn-sm" onclick="dlS()"><i class="fa-solid fa-download"></i> Mẫu CSV</button>
   </div>
-  <div id="dbs" style="font-size:11px;color:#6b7280">Chưa có database <span class="db-saved" id="db_saved_note" style="display:none"><i class="fa-solid fa-circle-check"></i> Đã lưu vào máy</span></div>
+  <div id="dbs" style="font-size:11px;color:#6b7280">Chưa có database</div>
 </div>
 
 <div class="savebar">
@@ -140,14 +131,13 @@ textarea{resize:vertical}
   <table class="ptbl">
     <thead><tr>
       <th style="width:22px">#</th>
-      <th style="width:100px">SKU <span style="font-weight:400;color:#9ca3af;font-size:10px">(gõ tìm)</span></th>
+      <th style="width:88px">SKU</th>
       <th>Tên & phân loại</th>
       <th style="width:50px">SL</th>
       <th style="width:85px">Giá lẻ (đ)</th>
-      <th style="width:58px" title="Để trống=tự động. Nhập số=CK riêng dòng này">CK%</th>
-      <th style="width:88px;background:#fefce8;color:#854d0e">Giá sau CK</th>
-      <th style="width:88px">Thành tiền</th>
-      <th style="width:130px">Note / Tồn kho TT</th>
+      <th style="width:60px" title="Để trống = áp bậc tự động. Nhập số để đặt CK riêng cho dòng này">CK% <i class="fa-solid fa-circle-info" style="font-size:9px;color:#9ca3af"></i></th>
+      <th style="width:90px;background:#fefce8;color:#854d0e">Giá sau CK (đ)</th>
+      <th style="width:90px">Thành tiền (đ)</th>
       <th style="width:110px">Ảnh SP | Ảnh KT</th>
       <th style="width:24px"></th>
     </tr></thead>
@@ -156,7 +146,9 @@ textarea{resize:vertical}
   </div>
   <button class="addb" onclick="add()"><i class="fa-solid fa-plus"></i> Thêm sản phẩm</button>
   <p style="margin-top:7px;font-size:11px;color:#9ca3af">
-    <i class="fa-solid fa-circle-info"></i> Gõ SKU → gợi ý tự hiện, click để chọn. CK% trống = bậc tự động. Note: ghi tồn kho thực tế hoặc ghi chú nội bộ (không in ra PDF). Ảnh: bấm vào ô → <b>Ctrl+V</b> paste hoặc bấm 2 lần upload.
+    <i class="fa-solid fa-circle-info"></i> Gõ SKU đúng → tên/giá tự điền. 
+    <b>CK%:</b> để trống = bậc tự động theo tổng đơn; nhập số (vd: 12) = đặt CK riêng dòng đó. 
+    Ảnh: bấm vào ô → <b>Ctrl+V</b> để paste, hoặc bấm 2 lần để upload.
   </p>
 </div>
 
@@ -186,7 +178,6 @@ textarea{resize:vertical}
 
 <div class="abar">
   <button class="btn btn-w" onclick="sw('x')"><i class="fa-solid fa-eye"></i> Xem trước PDF</button>
-  <button class="btn btn-g" style="background:#217346" onclick="xExcel()"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
   <button class="btn btn-g" onclick="xPDF()"><i class="fa-solid fa-file-pdf"></i> Xuất PDF</button>
 </div>
 <div id="st" class="sta"></div>
@@ -197,8 +188,7 @@ textarea{resize:vertical}
     <span style="font-size:12px;color:#6b7280">Preview A4 — đúng layout gửi khách</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-w btn-sm" onclick="sw('n')"><i class="fa-solid fa-arrow-left"></i> Sửa</button>
-      <button class="btn btn-g btn-sm" style="background:#217346" onclick="xExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
-      <button class="btn btn-g btn-sm" onclick="xPDF()"><i class="fa-solid fa-download"></i> PDF</button>
+      <button class="btn btn-g btn-sm" onclick="xPDF()"><i class="fa-solid fa-download"></i> Tải PDF</button>
     </div>
   </div>
   <div class="prev-wrap" id="pa"></div>
@@ -234,13 +224,7 @@ function loadCSV(inp) {
       const s=(c[iS]||'').trim().toUpperCase();
       if(s){db[s]={ten:(c[iT]||'').trim(),gia:parseFloat((c[iG]||'').replace(/[^0-9.]/g,''))||0,u1:(c[iI1]||'').trim(),u2:(iI2>0?(c[iI2]||'').trim():'')};n++;}
     });
-    // Lưu vào localStorage để dùng lần sau
-    try {
-      localStorage.setItem('gocnha_db', JSON.stringify(db));
-      localStorage.setItem('gocnha_db_count', n);
-    } catch(e) { /* bộ nhớ đầy, bỏ qua */ }
-    document.getElementById('dbs').innerHTML='<span style="color:#059669"><i class="fa-solid fa-check"></i> '+n+' SKU đã nạp & lưu vào máy</span>';
-    document.getElementById('db_saved_note').style.display='inline';
+    document.getElementById('dbs').innerHTML='<span style="color:#059669"><i class="fa-solid fa-check"></i> '+n+' SKU đã nạp</span>';
     rTable();
   };
   r.readAsText(file,'UTF-8');
@@ -260,39 +244,15 @@ function ckN(tot){
     '<span style="color:#9ca3af;margin-left:8px;font-size:10px">Gõ số vào cột CK% để đặt mức riêng</span>';
 }
 
-function add(){rows.push({id:Date.now(),sku:'',ten:'',sl:1,gia:0,ck:null,img1:'',img2:'',note:''});rTable();}
+function add(){rows.push({id:Date.now(),sku:'',ten:'',sl:1,gia:0,ck:null,img1:'',img2:''});rTable();}
 function del(id){rows=rows.filter(r=>r.id!==id);rTable();}
 
 function oSKU(id,v){
   const r=rows.find(r=>r.id===id);if(!r)return;
   r.sku=v.toUpperCase();
-  // Exact match - auto fill
   const m=db[r.sku.trim()];
-  if(m){r.ten=m.ten;r.gia=m.gia;if(m.u1)r.img1=m.u1;if(m.u2)r.img2=m.u2;}
-  // Show dropdown
-  showDrop(id,v);
-  cSum();
-}
-function showDrop(id,v){
-  const drop=document.getElementById('sdrop_'+id);if(!drop)return;
-  const q=(v||'').toUpperCase().trim();
-  if(!q||q.length<1){drop.style.display='none';return;}
-  const keys=Object.keys(db);
-  const matches=keys.filter(k=>k.startsWith(q)).slice(0,6)
-    .concat(keys.filter(k=>!k.startsWith(q)&&k.includes(q)).slice(0,4));
-  const unique=[...new Set(matches)].slice(0,8);
-  if(!unique.length){drop.style.display='none';return;}
-  drop.innerHTML=unique.map(k=>'<div class="srch-item" onmousedown="pickSKU('+id+',''+k+'')"><span class="si-sku">'+k+'</span><span class="si-ten">'+db[k].ten.slice(0,35)+'</span><span class="si-gia">'+FN(db[k].gia)+'</span></div>').join('');
-  drop.style.display='block';
-}
-function hDrop(id){setTimeout(()=>{const d=document.getElementById('sdrop_'+id);if(d)d.style.display='none';},200);}
-function pickSKU(id,sku){
-  const r=rows.find(r=>r.id===id);if(!r)return;
-  r.sku=sku;const m=db[sku];
-  if(m){r.ten=m.ten;r.gia=m.gia;if(m.u1)r.img1=m.u1;if(m.u2)r.img2=m.u2;}
-  const inp=document.getElementById('ski_'+id);if(inp)inp.value=sku;
-  const drop=document.getElementById('sdrop_'+id);if(drop)drop.style.display='none';
-  rTable();
+  if(m){r.ten=m.ten;r.gia=m.gia;if(m.u1)r.img1=m.u1;if(m.u2)r.img2=m.u2;rTable();}
+  else cSum();
 }
 function upd(id,f,v){const r=rows.find(r=>r.id===id);if(r){r[f]=v;cSum();}}
 
@@ -478,7 +438,7 @@ function applyData(d){
     document.getElementById('nv').value=d.khachHang.nv||'';
     document.getElementById('sobg').value=d.khachHang.sobg||'';
   }
-  rows=(d.rows||[]).map(r=>Object.assign({note:''},r));
+  rows=(d.rows||[]).map(r=>Object.assign({},r));
   ttRows=(d.ttRows||[]).map(r=>Object.assign({},r));
   document.getElementById('dktt').value=d.dktt||'';
   rTable();rTT();cSum();
@@ -592,66 +552,6 @@ function bA4(){
 }
 
 function rPrev(){document.getElementById('pa').innerHTML=bA4();}
-
-function xExcel(){
-  if(!rows.length){sS('Chưa có sản phẩm!','err');return;}
-  const kh=document.getElementById('kt').value||'—';
-  const dc=document.getElementById('kd').value||'';
-  const ms=document.getElementById('km').value||'';
-  const em=document.getElementById('ke').value||'';
-  const sd=document.getElementById('ks').value||'';
-  const nv=document.getElementById('nv').value||'';
-  const sobg=document.getElementById('sobg').value||'';
-  const bgd=document.getElementById('bd').value;
-  const ng=bgd?new Date(bgd).toLocaleDateString('vi-VN'):new Date().toLocaleDateString('vi-VN');
-  let tot=0;rows.forEach(r=>tot+=(r.sl||0)*(r.gia||0));
-  const ar=R(tot);let sau=0;
-  rows.forEach(r=>{const rt=r.ck!==null?r.ck/100:ar;sau+=(r.sl||0)*(r.gia||0)*(1-rt);});
-  const ck=tot-sau,vat=sau*.08,tong=sau+vat;
-  const wb=XLSX.utils.book_new();
-  const wsData=[
-    ['BÁO GIÁ – GÓC NHÀ KITCHENWARE'],
-    ['Số BG:',sobg,'','Ngày:',ng,'','Người lập:',nv],
-    [],
-    ['KHÁCH HÀNG'],
-    ['Tên:',kh,'','MST:',ms],
-    ['Địa chỉ:',dc,'','Email:',em],
-    ['SĐT:',sd],
-    [],
-    ['#','SKU','Tên sản phẩm & phân loại','SL','Giá lẻ (đ)','CK%','Giá sau CK (đ)','Thành tiền (đ)','Note / Tồn kho TT'],
-    ...rows.map((r,i)=>{
-      const rt=r.ck!==null?r.ck/100:ar;
-      const giaCK=Math.round((r.gia||0)*(1-rt));
-      const tt=Math.round((r.sl||0)*giaCK);
-      return[i+1,r.sku,r.ten,r.sl,r.gia||0,((rt)*100).toFixed(0)+'%',giaCK,tt,r.note||''];
-    }),
-    [],
-    ['','','','','','','Tổng tiền hàng',Math.round(tot),''],
-    ['','','','','','','Chiết khấu ('+(ar*100).toFixed(0)+'%)',-Math.round(ck),''],
-    ['','','','','','','Sau chiết khấu',Math.round(sau),''],
-    ['','','','','','','VAT (8%)',Math.round(vat),''],
-    ['','','','','','','TỔNG PHẢI TRẢ',Math.round(tong),''],
-    [],
-    [dVN(Math.round(tong))],
-    [],
-    ['LỊCH THANH TOÁN'],
-    ...ttRows.map((r,i)=>['Đợt '+(i+1),r.label,'Số tiền:',r.amt||0,'Tỷ lệ:',r.pct+'%']),
-    [],
-    ['ĐIỀU KHOẢN'],
-    ...document.getElementById('dktt').value.split('\n').filter(l=>l.trim()).map(l=>[l]),
-    [],
-    ['CHUYỂN KHOẢN'],
-    ['STK:','190 3099 455 1555','NH:','Techcombank – CN Đông Đô'],
-    ['Tên TK:','CÔNG TY CỔ PHẦN GLOBO VISTA VIỆT NAM'],
-  ];
-  const ws=XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols']=[{wch:4},{wch:14},{wch:38},{wch:6},{wch:13},{wch:7},{wch:14},{wch:14},{wch:24}];
-  XLSX.utils.book_append_sheet(wb,'Báo Giá',ws);
-  const khS=kh.replace(/\s+/g,'_').slice(0,14);
-  const nvS=nv.replace(/\s+/g,'_').slice(0,10);
-  XLSX.writeFile(wb,'BaoGia_'+khS+(nvS?'_'+nvS:'')+'_'+(bgd||new Date().toISOString().split('T')[0])+'.xlsx');
-  sS('Đã xuất Excel!','ok');
-}
 
 async function xPDF(){
   if(!rows.length){sS('Chưa có sản phẩm!','err');return;}
