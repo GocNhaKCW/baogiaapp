@@ -78,6 +78,14 @@ textarea{resize:vertical}
 .sta.ok{background:#dcfce7;color:#166534;display:flex}
 .sta.err{background:#fee2e2;color:#dc2626;display:flex}
 .prev-wrap{background:#e5e7eb;padding:14px;border-radius:10px;overflow-x:auto}
+.savebar{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.savebar h3{font-size:12px;font-weight:600;color:#374151;margin-right:4px}
+.saved-list{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.saved-chip{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:20px;padding:4px 12px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#374151}
+.saved-chip:hover{background:#f0fdf4;border-color:#86efac}
+.saved-chip .del-chip{color:#9ca3af;font-size:11px;margin-left:2px}
+.saved-chip .del-chip:hover{color:#ef4444}
+.no-saved{font-size:11px;color:#9ca3af;font-style:italic}
 </style>
 </head>
 <body>
@@ -103,6 +111,16 @@ textarea{resize:vertical}
     <button class="btn btn-w btn-sm" onclick="dlS()"><i class="fa-solid fa-download"></i> Mẫu CSV</button>
   </div>
   <div id="dbs" style="font-size:11px;color:#6b7280">Chưa có database</div>
+</div>
+
+<div class="savebar">
+  <h3><i class="fa-solid fa-folder-open" style="color:#2d6a4f"></i> Báo giá đã lưu:</h3>
+  <div class="saved-list" id="saved_list"><span class="no-saved">Chưa có báo giá nào được lưu</span></div>
+  <div style="display:flex;gap:6px;margin-left:auto">
+    <input type="file" id="open_json" accept=".json" onchange="openBG(this)" style="display:none">
+    <button class="btn btn-w btn-sm" onclick="document.getElementById('open_json').click()"><i class="fa-solid fa-folder-open"></i> Mở file</button>
+    <button class="btn btn-g btn-sm" onclick="saveBG()"><i class="fa-solid fa-floppy-disk"></i> Lưu báo giá</button>
+  </div>
 </div>
 
 <!-- Khách hàng -->
@@ -608,6 +626,122 @@ async function xPDF(){
 
 function sS(m,t){const el=document.getElementById('st');el.textContent=m;el.className='sta '+t;if(t==='ok'&&m.includes('công'))setTimeout(()=>el.className='sta',4000);}
 
+// ── LƯU / MỞ BÁO GIÁ ──
+const LS_KEY = 'gocnha_baogia_list';
+
+function getSavedList() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
+}
+
+function renderSavedList() {
+  const list = getSavedList();
+  const el = document.getElementById('saved_list');
+  if (!list.length) { el.innerHTML = '<span class="no-saved">Chưa có báo giá nào được lưu</span>'; return; }
+  el.innerHTML = list.map((item, i) => `
+    <span class="saved-chip" onclick="loadSaved(${i})" title="Mở báo giá này">
+      <i class="fa-solid fa-file-invoice"></i>
+      ${item.name}
+      <span class="del-chip" onclick="event.stopPropagation();delSaved(${i})" title="Xoá">✕</span>
+    </span>`).join('');
+}
+
+function saveBG() {
+  const kh = document.getElementById('kt').value || 'Chưa đặt tên';
+  const ng = document.getElementById('bd').value || new Date().toISOString().split('T')[0];
+  const name = `${kh} – ${ng}`;
+  
+  const data = {
+    name,
+    savedAt: new Date().toISOString(),
+    khachHang: {
+      ten: document.getElementById('kt').value,
+      dc: document.getElementById('kd').value,
+      mst: document.getElementById('km').value,
+      em: document.getElementById('ke').value,
+      sdt: document.getElementById('ks').value,
+      ngay: document.getElementById('bd').value,
+    },
+    rows: rows.map(r => ({...r})),
+    ttRows: ttRows.map(r => ({...r})),
+    dktt: document.getElementById('dktt').value,
+  };
+
+  // Lưu vào localStorage
+  const list = getSavedList();
+  // Nếu đã có cùng tên thì overwrite
+  const idx = list.findIndex(x => x.name === name);
+  if (idx >= 0) list[idx] = data; else list.unshift(data);
+  // Giữ tối đa 20 báo giá
+  if (list.length > 20) list.pop();
+  localStorage.setItem(LS_KEY, JSON.stringify(list));
+  renderSavedList();
+
+  // Đồng thời tải file JSON về máy để backup
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `BaoGia_${kh.replace(/\s+/g,'_').slice(0,20)}_${ng}.json`;
+  a.click();
+  
+  sS(`Đã lưu: "${name}"`, 'ok');
+}
+
+function loadSaved(i) {
+  const list = getSavedList();
+  const data = list[i];
+  if (!data) return;
+  applyData(data);
+  sS(`Đã mở: "${data.name}"`, 'ok');
+}
+
+function delSaved(i) {
+  const list = getSavedList();
+  const name = list[i]?.name;
+  list.splice(i, 1);
+  localStorage.setItem(LS_KEY, JSON.stringify(list));
+  renderSavedList();
+}
+
+function openBG(inp) {
+  const file = inp.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      applyData(data);
+      // Lưu vào localStorage luôn
+      const list = getSavedList();
+      const idx = list.findIndex(x => x.name === data.name);
+      if (idx >= 0) list[idx] = data; else list.unshift(data);
+      localStorage.setItem(LS_KEY, JSON.stringify(list));
+      renderSavedList();
+      sS(`Đã mở: "${data.name}"`, 'ok');
+    } catch { sS('File không hợp lệ!', 'err'); }
+  };
+  r.readAsText(file, 'UTF-8');
+}
+
+function applyData(data) {
+  // Khách hàng
+  if (data.khachHang) {
+    document.getElementById('kt').value = data.khachHang.ten || '';
+    document.getElementById('kd').value = data.khachHang.dc || '';
+    document.getElementById('km').value = data.khachHang.mst || '';
+    document.getElementById('ke').value = data.khachHang.em || '';
+    document.getElementById('ks').value = data.khachHang.sdt || '';
+    document.getElementById('bd').value = data.khachHang.ngay || '';
+  }
+  // Sản phẩm
+  rows = (data.rows || []).map(r => ({...r, id: r.id || Date.now()+Math.random()}));
+  // Thanh toán
+  ttRows = (data.ttRows || []).map(r => ({...r, id: r.id || Date.now()+Math.random()}));
+  // Điều khoản
+  document.getElementById('dktt').value = data.dktt || '';
+  rTable();
+  rTT();
+  cSum();
+}
+
 // ── INIT ──
 document.getElementById('bd').value=new Date().toISOString().split('T')[0];
 document.getElementById('dktt').value='• Báo giá đã bao gồm 8% VAT, chưa bao gồm phí vận chuyển.\n• Hàng đặt: thời gian giao 35–45 ngày kể từ ngày nhận tạm ứng. Hàng sẵn kho: 2–5 ngày làm việc.\n• Báo giá có hiệu lực trong 7 ngày kể từ ngày phát hành.';
@@ -615,6 +749,7 @@ addTT('Tạm ứng khi đặt hàng',50,0);
 addTT('Thanh toán trước khi nhận hàng',50,0);
 add();add();
 cSum();
+renderSavedList();
 </script>
 </body>
 </html>
