@@ -138,7 +138,7 @@ textarea{resize:vertical}
   </table>
   </div>
   <button class="addb" onclick="add()"><i class="fa-solid fa-plus"></i> Thêm sản phẩm</button>
-  <p style="margin-top:7px;font-size:11px;color:#9ca3af"><i class="fa-solid fa-circle-info"></i> Gõ SKU đúng → tên/giá tự điền. CK% trống = áp bậc tự động. Ảnh: <strong>paste (Ctrl+V)</strong> hoặc click để upload từ máy.</p>
+  <p style="margin-top:7px;font-size:11px;color:#9ca3af"><i class="fa-solid fa-circle-info"></i> Gõ SKU đúng → tên/giá tự điền. CK% trống = áp bậc tự động. Ảnh: <strong>bấm vào ô ảnh</strong> (viền xanh) rồi <strong>Ctrl+V</strong> để paste, hoặc bấm 2 lần để upload file.</p>
 </div>
 
 <!-- Tổng -->
@@ -249,22 +249,35 @@ function upd(id,f,v){const r=rows.find(r=>r.id===id);if(r){r[f]=v;cSum();}}
 
 // Image: paste or click-upload
 function setupImgBox(el, id, slot) {
-  // Click to upload
+  el.setAttribute('tabindex','0');
+  el.style.outline='none';
+
+  // Click: focus ô đó rồi hỏi upload hay paste
   el.addEventListener('click', ()=>{
-    const inp = document.createElement('input');
-    inp.type='file'; inp.accept='image/*';
-    inp.onchange = e => {
-      const file=e.target.files[0]; if(!file) return;
-      const fr=new FileReader();
-      fr.onload=ev=>{setImg(id,slot,ev.target.result);};
-      fr.readAsDataURL(file);
-    };
-    inp.click();
+    el.focus();
+    // Nếu chưa có ảnh thì mở file picker
+    const r = rows.find(r=>r.id===id);
+    if(!r || !(slot===1?r.img1:r.img2)){
+      const inp=document.createElement('input');
+      inp.type='file';inp.accept='image/*';
+      inp.onchange=e=>{
+        const file=e.target.files[0];if(!file)return;
+        const fr=new FileReader();
+        fr.onload=ev=>{setImg(id,slot,ev.target.result);};
+        fr.readAsDataURL(file);
+      };
+      inp.click();
+    }
   });
-  // Paste
-  el.addEventListener('paste', e=>{
-    e.preventDefault();
-    const items=e.clipboardData.items;
+
+  // Focus style
+  el.addEventListener('focus',()=>el.style.borderColor='#2d6a4f');
+  el.addEventListener('blur',()=>el.style.borderColor='');
+
+  // Paste - hoạt động khi ô đang focus
+  el.addEventListener('paste',e=>{
+    e.preventDefault();e.stopPropagation();
+    const items=(e.clipboardData||window.clipboardData).items;
     for(let item of items){
       if(item.type.startsWith('image/')){
         const fr=new FileReader();
@@ -274,17 +287,37 @@ function setupImgBox(el, id, slot) {
       }
     }
   });
-  // Drag
+
+  // Drag & drop
   el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drag');});
   el.addEventListener('dragleave',()=>el.classList.remove('drag'));
   el.addEventListener('drop',e=>{
     e.preventDefault();el.classList.remove('drag');
-    const file=e.dataTransfer.files[0];if(!file||!file.type.startsWith('image/'))return;
-    const fr=new FileReader();fr.onload=ev=>{setImg(id,slot,ev.target.result);};fr.readAsDataURL(file);
+    const file=e.dataTransfer.files[0];
+    if(!file||!file.type.startsWith('image/'))return;
+    const fr=new FileReader();
+    fr.onload=ev=>{setImg(id,slot,ev.target.result);};
+    fr.readAsDataURL(file);
   });
-  // Make focusable for paste
-  el.setAttribute('tabindex','0');
 }
+
+// Global paste handler - paste vào ô đang focus
+document.addEventListener('paste', e=>{
+  const active=document.activeElement;
+  if(!active||!active.classList.contains('img-box'))return;
+  e.preventDefault();
+  const items=(e.clipboardData||window.clipboardData).items;
+  for(let item of items){
+    if(item.type.startsWith('image/')){
+      const id=parseInt(active.id.split('_')[1]);
+      const slot=parseInt(active.id.split('_')[2])||1;
+      const fr=new FileReader();
+      fr.onload=ev=>{setImg(id,slot,ev.target.result);};
+      fr.readAsDataURL(item.getAsFile());
+      break;
+    }
+  }
+});
 
 function setImg(id,slot,data){
   const r=rows.find(r=>r.id===id);if(!r)return;
