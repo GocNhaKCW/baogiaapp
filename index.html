@@ -133,6 +133,8 @@ textarea{resize:vertical}
     <div><label>Email</label><input id="ke" placeholder="contact@company.vn"></div>
     <div><label>Số điện thoại</label><input id="ks" placeholder="0901 234 567"></div>
     <div><label>Ngày báo giá</label><input type="date" id="bd"></div>
+    <div><label>Người tạo báo giá</label><input id="nv" placeholder="Nguyễn Văn A..." oninput="saveNV(this.value)"></div>
+    <div><label>Số báo giá</label><input id="sobg" placeholder="BG-2026-001" style="color:#6b7280"></div>
   </div>
 </div>
 
@@ -524,8 +526,10 @@ function bA4(){
   </div>
   <div style="text-align:right">
     <div style="font-size:16pt;font-weight:700;color:#2d6a4f;letter-spacing:.5px">BÁO GIÁ</div>
-    <div style="font-size:8.5pt;margin-top:3px">Ngày: <strong>${ng}</strong></div>
+    ${document.getElementById('sobg').value ? `<div style="font-size:8pt;margin-top:2px;color:#2d6a4f">Số: <strong>${document.getElementById('sobg').value}</strong></div>` : ''}
+    <div style="font-size:8.5pt;margin-top:2px">Ngày: <strong>${ng}</strong></div>
     <div style="font-size:7pt;color:#bbb;margin-top:1px">Hiệu lực đến ${e7()}</div>
+    ${document.getElementById('nv').value ? `<div style="font-size:7pt;color:#6b7280;margin-top:2px">Người lập: ${document.getElementById('nv').value}</div>` : ''}
   </div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;margin-bottom:12px;border:.5px solid #e0e0e0;border-radius:3px;overflow:hidden">
@@ -648,7 +652,8 @@ function renderSavedList() {
 function saveBG() {
   const kh = document.getElementById('kt').value || 'Chưa đặt tên';
   const ng = document.getElementById('bd').value || new Date().toISOString().split('T')[0];
-  const name = `${kh} – ${ng}`;
+  const nv = document.getElementById('nv').value || 'NV';
+  const name = `${kh} – ${ng} (${nv})`;
   
   const data = {
     name,
@@ -660,6 +665,8 @@ function saveBG() {
       em: document.getElementById('ke').value,
       sdt: document.getElementById('ks').value,
       ngay: document.getElementById('bd').value,
+      nv: document.getElementById('nv').value,
+      sobg: document.getElementById('sobg').value,
     },
     rows: rows.map(r => ({...r})),
     ttRows: ttRows.map(r => ({...r})),
@@ -730,6 +737,8 @@ function applyData(data) {
     document.getElementById('ke').value = data.khachHang.em || '';
     document.getElementById('ks').value = data.khachHang.sdt || '';
     document.getElementById('bd').value = data.khachHang.ngay || '';
+    document.getElementById('nv').value = data.khachHang.nv || '';
+    document.getElementById('sobg').value = data.khachHang.sobg || '';
   }
   // Sản phẩm
   rows = (data.rows || []).map(r => ({...r, id: r.id || Date.now()+Math.random()}));
@@ -742,11 +751,29 @@ function applyData(data) {
   cSum();
 }
 
+// ── LƯU TÊN NHÂN VIÊN ──
+function saveNV(val) {
+  localStorage.setItem('gocnha_nv', val);
+}
+
+function genSoBG() {
+  const d = new Date();
+  const yy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const rand = String(Math.floor(Math.random()*900)+100);
+  return `BG-${yy}${mm}-${rand}`;
+}
+
 // ── INIT ──
 document.getElementById('bd').value=new Date().toISOString().split('T')[0];
 document.getElementById('dktt').value='• Báo giá đã bao gồm 8% VAT, chưa bao gồm phí vận chuyển.\n• Hàng đặt: thời gian giao 35–45 ngày kể từ ngày nhận tạm ứng. Hàng sẵn kho: 2–5 ngày làm việc.\n• Báo giá có hiệu lực trong 7 ngày kể từ ngày phát hành.';
 addTT('Tạm ứng khi đặt hàng',50,0);
 addTT('Thanh toán trước khi nhận hàng',50,0);
+// Load tên NV đã lưu
+const savedNV = localStorage.getItem('gocnha_nv');
+if (savedNV) document.getElementById('nv').value = savedNV;
+// Tự gen số báo giá
+document.getElementById('sobg').value = genSoBG();
 add();add();
 cSum();
 renderSavedList();
