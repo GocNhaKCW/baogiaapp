@@ -361,7 +361,6 @@ function cSum() {
   document.getElementById('s2').textContent=F(sau);
   document.getElementById('s3').textContent=F(vat);
   document.getElementById('s4').textContent=F(tong);
-  // Hiển thị CK badge
   var ckPct = rows.some(function(r){return r.ck!==null;}) ? 'Nhiều mức' : (ar*100).toFixed(0)+'%';
   document.getElementById('cb').textContent=ckPct;
   document.getElementById('bc').textContent='Bằng chữ: '+dVN(Math.round(tong));
@@ -375,7 +374,7 @@ function getTong() {
   var ar=R(tot),sau=0; rows.forEach(function(r){var rt=r.ck!==null?r.ck/100:ar;sau+=(r.sl||0)*(r.gia||0)*(1-rt);}); return sau*1.08;
 }
 function syncTT(tong) {
-  ttRows.forEach(function(r) { if(r.pct>0){r.amt=Math.round(tong*r.pct/100); var el=document.getElementById('ta_'+r.id); if(el)el.value=FN(r.amt);} });
+  // Không tự cập nhật - mỗi dòng tự tính khi người dùng nhập
 }
 function updTT(id,f,v) {
   var r=ttRows.find(function(r){return r.id===id;}); if(!r)return; r[f]=v;
