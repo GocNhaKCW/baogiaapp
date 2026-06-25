@@ -128,6 +128,7 @@ textarea{resize:vertical}
       <th style="width:22px">#</th>
       <th style="width:90px">SKU</th>
       <th>Tên &amp; phân loại</th>
+      <th style="width:60px">ĐVT</th>
       <th style="width:50px">SL</th>
       <th style="width:84px">Giá lẻ (đ)</th>
       <th style="width:56px" title="Trống=tự động, nhập số=CK riêng">CK%</th>
@@ -209,6 +210,7 @@ function loadCSV(inp) {
     var h = lines[0].toLowerCase().split(',').map(function(s){return s.trim().replace(/[^a-z0-9]/g,'');});
     var iS = h.findIndex(function(x){return x.includes('sku')||x.includes('ma');});
     var iT = h.findIndex(function(x){return x.includes('ten')||x.includes('name');});
+    var iD = h.findIndex(function(x){return x.includes('don')||x.includes('unit')||x.includes('dvt');});
     var iG = h.findIndex(function(x){return x.includes('gia')||x.includes('price');});
     var n = 0;
     lines.slice(1).forEach(function(l) {
@@ -242,7 +244,7 @@ function ckN(tot) {
 }
 
 function addRow() {
-  rows.push({id:Date.now(), sku:'', ten:'', sl:1, gia:0, ck:null, img1:'', img2:''});
+  rows.push({id:Date.now(), sku:'', ten:'', dvt:'', sl:1, gia:0, ck:null, img1:'', img2:''});
   rTable();
 }
 function delRow(id) { rows = rows.filter(function(r){return r.id!==id;}); rTable(); }
@@ -326,6 +328,7 @@ function rTable() {
       + '<td style="color:#9ca3af;font-size:11px">'+(i+1)+'</td>'
       + '<td><input value="'+r.sku+'" oninput="oSKU('+r.id+',this.value)" placeholder="DW174-21" style="width:84px;text-transform:uppercase">'+mk+'</td>'
       + '<td><textarea oninput="upd('+r.id+',&quot;ten&quot;,this.value)" placeholder="Tên SP&#10;Ghi chú: 10 White, 5 Black...">'+r.ten+'</textarea></td>'
+      + '<td><input value="'+(r.dvt||'')+'" oninput="upd('+r.id+',\'dvt\',this.value)" placeholder="Cái" style="width:54px"></td>'
       + '<td><input type="number" min="0" value="'+r.sl+'" oninput="upd('+r.id+',&quot;sl&quot;,+this.value)" class="tr" style="width:44px"></td>'
       + '<td><input type="number" min="0" value="'+(r.gia||'')+'" oninput="upd('+r.id+',&quot;gia&quot;,+this.value)" class="tr" placeholder="0" style="width:80px"></td>'
       + '<td><input type="number" min="0" max="100" value="'+(r.ck!==null?r.ck:'')+'" oninput="updCK('+r.id+',this.value)" class="tr" placeholder="'+(ar*100).toFixed(0)+'" style="width:50px"></td>'
@@ -361,7 +364,7 @@ function cSum() {
   document.getElementById('s2').textContent=F(sau);
   document.getElementById('s3').textContent=F(vat);
   document.getElementById('s4').textContent=F(tong);
-  var ckPct = rows.some(function(r){return r.ck!==null;}) ? 'Nhiều mức' : (ar*100).toFixed(0)+'%';
+  var ckPct=rows.some(function(r){return r.ck!==null;})?'Nhiều mức':(ar*100).toFixed(0)+'%';
   document.getElementById('cb').textContent=ckPct;
   document.getElementById('bc').textContent='Bằng chữ: '+dVN(Math.round(tong));
   ckN(tot); syncTT(tong);
@@ -373,9 +376,7 @@ function getTong() {
   var tot=0; rows.forEach(function(r){tot+=(r.sl||0)*(r.gia||0);});
   var ar=R(tot),sau=0; rows.forEach(function(r){var rt=r.ck!==null?r.ck/100:ar;sau+=(r.sl||0)*(r.gia||0)*(1-rt);}); return sau*1.08;
 }
-function syncTT(tong) {
-  // Không tự cập nhật - mỗi dòng tự tính khi người dùng nhập
-}
+function syncTT(tong) { /* mỗi dòng độc lập */ }
 function updTT(id,f,v) {
   var r=ttRows.find(function(r){return r.id===id;}); if(!r)return; r[f]=v;
   var tong=getTong();
@@ -455,7 +456,7 @@ function applyData(d){
   document.getElementById('bd').value=kh.ngay||'';
   document.getElementById('nv').value=kh.nv||'';
   document.getElementById('sbg').value=kh.sobg||'';
-  rows=(d.rows||[]).map(function(r){return Object.assign({},r);});
+  rows=(d.rows||[]).map(function(r){return Object.assign({dvt:''},r);});
   ttRows=(d.ttRows||[]).map(function(r){return Object.assign({},r);});
   document.getElementById('dktt').value=d.dktt||'';
   rTable();rTT();cSum();
@@ -500,6 +501,7 @@ function bA4(){
       +'<td style="text-align:center;color:#999;font-size:8pt;padding:5px 3px">'+(i+1)+'</td>'
       +'<td style="font-size:7.5pt;color:#555;padding:5px 3px">'+r.sku+'</td>'
       +'<td style="font-size:8pt;line-height:1.5;padding:5px 3px">'+tl+'</td>'
+      +'<td style="text-align:center;padding:5px 3px;font-size:7.5pt">'+( r.dvt||'')+'</td>'
       +'<td style="text-align:center;padding:5px 3px">'+r.sl+'</td>'
       +'<td style="text-align:right;padding:5px 3px">'+FN(r.gia||0)+'</td>'
       +'<td style="text-align:center;padding:5px 3px">'+((rt)*100).toFixed(0)+'%</td>'
@@ -544,6 +546,7 @@ function bA4(){
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:18px">#</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:left;width:58px">SKU</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:left">Sản phẩm &amp; phân loại</th>'
+        +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:32px">ĐVT</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:22px">SL</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:right;width:62px">Giá lẻ (đ)</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:26px">CK</th>'
