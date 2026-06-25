@@ -169,7 +169,7 @@ textarea{resize:vertical}
 
 <div class="abar">
   <button class="btn btn-w" onclick="sw('x')">&#128065; Xem trước</button>
-  <button class="btn btn-xl" onclick="xExcel()">&#128202; Xuất Excel</button>
+  <button class="btn btn-xl" onclick="xCSV()">&#128202; Xuất CSV (Excel)</button>
   <button class="btn btn-g" onclick="xPDF()">&#128196; Xuất PDF</button>
 </div>
 <div id="sta" class="sta"></div>
@@ -180,7 +180,7 @@ textarea{resize:vertical}
     <span style="font-size:12px;color:#6b7280">Preview A4</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-w btn-sm" onclick="sw('n')">&#8592; Sửa</button>
-      <button class="btn btn-xl btn-sm" onclick="xExcel()">Excel</button>
+      <button class="btn btn-xl btn-sm" onclick="xCSV()">CSV</button>
       <button class="btn btn-g btn-sm" onclick="xPDF()">PDF</button>
     </div>
   </div>
@@ -361,7 +361,14 @@ function cSum() {
   document.getElementById('s2').textContent=F(sau);
   document.getElementById('s3').textContent=F(vat);
   document.getElementById('s4').textContent=F(tong);
-  document.getElementById('cb').textContent=(ar*100).toFixed(0)+'%';
+  // Kiểm tra CK% có đồng nhất không
+  var allSameCK=true; var firstRT=null;
+  rows.forEach(function(r){
+    var rt=r.ck!==null?r.ck/100:ar;
+    if(firstRT===null)firstRT=rt;
+    else if(rt!==firstRT)allSameCK=false;
+  });
+  document.getElementById('cb').textContent=allSameCK?(Math.round((firstRT||ar)*100))+'%':'Nhiều mức';
   document.getElementById('bc').textContent='Bằng chữ: '+dVN(Math.round(tong));
   ckN(tot); syncTT(tong);
 }
@@ -422,11 +429,11 @@ function saveBG(){
   if(idx>=0)list[idx]=data; else list.unshift(data);
   if(list.length>20)list.pop();
   localStorage.setItem(LS_KEY,JSON.stringify(list)); rSaved();
-  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var jsonStr=JSON.stringify(data,null,2);
   var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(jsonStr);
   a.download='BaoGia_'+kh.replace(/\s+/g,'_').slice(0,16)+'_'+nv.replace(/\s+/g,'_').slice(0,10)+'_'+ng+'.json';
-  a.click();
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
   sS('Đã lưu: '+name,'ok');
 }
 function loadSaved(i){var list=getSaved();var d=list[i];if(!d)return;applyData(d);sS('Đã mở: '+d.name,'ok');}
@@ -558,7 +565,16 @@ function bA4(){
       +'</div>'
       +'<div style="width:230px"><table style="width:100%;font-size:8.5pt;border-collapse:collapse">'
         +'<tr><td style="padding:3px 4px;color:#666">Tổng tiền hàng</td><td style="text-align:right;padding:3px 4px">'+FN(v.tot)+' đ</td></tr>'
-        +(function(){var lbl=rows.some(function(r){return r.ck!==null;})?'Chiết khấu':'Chiết khấu ('+(v.ar*100).toFixed(0)+'%)';return '<tr><td style="padding:3px 4px;color:#666">'+lbl+'</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>';})()
+        +(function(){
+        var allSame=true; var firstCK=null;
+        rows.forEach(function(r){
+          var rt=r.ck!==null?r.ck/100:v.ar;
+          if(firstCK===null)firstCK=rt;
+          else if(rt!==firstCK)allSame=false;
+        });
+        var lbl=allSame?'Chiết khấu ('+(Math.round((firstCK||v.ar)*100))+'%)':'Chiết khấu';
+        return '<tr><td style="padding:3px 4px;color:#666">'+lbl+'</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>';
+      })()
         +'<tr><td style="padding:3px 4px;color:#666">Sau chiết khấu</td><td style="text-align:right;padding:3px 4px">'+FN(v.sau)+' đ</td></tr>'
         +'<tr><td style="padding:3px 4px;color:#666">VAT (8%)</td><td style="text-align:right;padding:3px 4px">'+FN(v.vat)+' đ</td></tr>'
         +'<tr style="border-top:1.5px solid #2d6a4f"><td style="padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">TỔNG PHẢI TRẢ</td><td style="text-align:right;padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">'+FN(v.tong)+' đ</td></tr>'
@@ -575,6 +591,63 @@ function bA4(){
 }
 
 function rPrev(){document.getElementById('pa').innerHTML=bA4();}
+
+function xCSV(){
+  if(!rows.length){sS('Chưa có sản phẩm!','err');return;}
+  var v=getVars();
+  var lines=[];
+  lines.push('BÁO GIÁ – GÓC NHÀ KITCHENWARE');
+  lines.push('"Số BG:","'+v.sobg+'","Ngày:","'+v.ng+'","Người lập:","'+v.nv+'"');
+  lines.push('');
+  lines.push('"THÔNG TIN KHÁCH HÀNG"');
+  lines.push('"Tên:","'+v.kh+'","MST:","'+v.ms+'"');
+  lines.push('"Địa chỉ:","'+v.dc+'","Email:","'+v.em+'","SĐT:","'+v.sd+'"');
+  lines.push('');
+  lines.push('"#","SKU","Tên sản phẩm","SL","Giá lẻ (đ)","CK%","Giá sau CK (đ)","Thành tiền (đ)"');
+  var allSameCK = rows.every(function(r){return r.ck===rows[0].ck;});
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i];
+    var rt=r.ck!==null?r.ck/100:v.ar;
+    var gck=Math.round((r.gia||0)*(1-rt));
+    var tt=Math.round((r.gia||0)*(r.sl||0));
+    var ten=(r.ten||'').replace(/"/g,"'").replace(/
+/g,' ');
+    lines.push((i+1)+',"'+r.sku+'","'+ten+'",'+r.sl+','+(r.gia||0)+','+((rt)*100).toFixed(0)+'%,'+gck+','+tt);
+  }
+  lines.push('');
+  lines.push('"","","","","","Tổng thành tiền",'+Math.round(v.tot));
+  // CK label
+  var ckPct = allSameCK ? Math.round(v.ar*100)+'%' : '';
+  lines.push('"","","","","","Chiết khấu '+ckPct+'",'+-Math.round(v.ck));
+  lines.push('"","","","","","Sau chiết khấu",'+Math.round(v.sau));
+  lines.push('"","","","","","VAT (8%)",'+Math.round(v.vat));
+  lines.push('"","","","","","TỔNG PHẢI TRẢ",'+Math.round(v.tong));
+  lines.push('');
+  lines.push('"'+dVN(Math.round(v.tong))+'"');
+  lines.push('');
+  lines.push('"LỊCH THANH TOÁN"');
+  for(var j=0;j<ttRows.length;j++){
+    var tt2=ttRows[j];
+    lines.push('"Đợt '+(j+1)+':","'+tt2.label+'","Số tiền:",'+( tt2.amt||0)+',"Tỷ lệ:",'+tt2.pct+'%');
+  }
+  lines.push('');
+  lines.push('"ĐIỀU KHOẢN"');
+  var dk=document.getElementById('dktt').value.split('
+');
+  for(var k=0;k<dk.length;k++){if(dk[k].trim())lines.push('"'+dk[k].replace(/"/g,"'")+'"');}
+  lines.push('');
+  lines.push('"CHUYỂN KHOẢN"');
+  lines.push('"STK:","190 3099 455 1555","NH:","Techcombank – CN Đông Đô"');
+  lines.push('"Tên TK:","CÔNG TY CỔ PHẦN GLOBO VISTA VIỆT NAM"');
+  var csv='﻿'+lines.join('
+');
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  var bgd=document.getElementById('bd').value||new Date().toISOString().split('T')[0];
+  a.download='BaoGia_'+v.kh.replace(/\s+/g,'_').slice(0,14)+'_'+bgd+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  sS('Xuất CSV thành công! Mở bằng Excel.','ok');
+}
 
 function xExcel(){
   if(!rows.length){sS('Chưa có sản phẩm!','err');return;}
