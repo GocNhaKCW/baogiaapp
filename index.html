@@ -216,7 +216,7 @@ function loadCSV(inp) {
     lines.slice(1).forEach(function(l) {
       var c = l.split(',');
       var s = (c[iS]||'').trim().toUpperCase();
-      if (s) { db[s] = {ten:(c[iT]||'').trim(), gia:parseFloat((c[iG]||'').replace(/[^0-9.]/g,''))||0}; n++; }
+      if (s) { db[s] = {ten:(c[iT]||'').trim(), dvt:(iDVT>=0?(c[iDVT]||'').trim():''), gia:parseFloat((c[iG]||'').replace(/[^0-9.]/g,''))||0}; n++; }
     });
     document.getElementById('dbs').innerHTML = '<span style="color:#059669">&#10003; '+n+' SKU đã nạp</span>';
     rTable();
@@ -375,7 +375,7 @@ function getTong() {
   var tot=0; rows.forEach(function(r){tot+=(r.sl||0)*(r.gia||0);});
   var ar=R(tot),sau=0; rows.forEach(function(r){var rt=r.ck!==null?r.ck/100:ar;sau+=(r.sl||0)*(r.gia||0)*(1-rt);}); return sau*1.08;
 }
-function syncTT(tong) { /* mỗi dòng độc lập */ }
+function syncTT(tong) {}
 function updTT(id,f,v) {
   var r=ttRows.find(function(r){return r.id===id;}); if(!r)return; r[f]=v;
   var tong=getTong();
@@ -630,6 +630,47 @@ function xExcel(){
   sS('Xuất Excel thành công!','ok');
 }
 
+
+function xCSV(){
+  if(!rows.length){sS('Chưa có sản phẩm!','err');return;}
+  var kh=document.getElementById('kt').value||'KhachHang';
+  var ng=document.getElementById('bd').value||new Date().toISOString().split('T')[0];
+  var nv=document.getElementById('nv').value||'';
+  var sobg=document.getElementById('sbg').value||'';
+  var tot=0;rows.forEach(function(r){tot+=(r.sl||0)*(r.gia||0);});
+  var ar=R(tot);
+  var sau=0;rows.forEach(function(r){var rt=r.ck!==null?r.ck/100:ar;sau+=Math.round((r.gia||0)*(r.sl||0)*(1-rt));});
+  var ck=tot-sau,vat=Math.round(sau*0.08),tong=sau+vat;
+  var rates=rows.map(function(r){return r.ck!==null?r.ck/100:ar;});
+  var allSame=rates.length>0&&rates.every(function(rt){return rt===rates[0];});
+  var ckLabel=allSame?'Chiết khấu ('+(rates[0]||ar)*100+'%)':'Chiết khấu';
+  var lines=[];
+  lines.push('BÁO GIÁ – GÓC NHÀ KITCHENWARE');
+  lines.push('"Số BG:","'+sobg+'","Ngày:","'+ng+'","Người lập:","'+nv+'"');
+  lines.push('');
+  lines.push('"#","SKU","Tên sản phẩm","ĐVT","SL","Giá lẻ (đ)","CK%","Giá sau CK","Thành tiền (đ)"');
+  rows.forEach(function(r,i){
+    var rt=r.ck!==null?r.ck/100:ar;
+    var gck=Math.round((r.gia||0)*(1-rt));
+    var tt=Math.round((r.gia||0)*(r.sl||0));
+    var ten=(r.ten||'').replace(/"/g,"'").replace(/\n/g,' ');
+    lines.push((i+1)+',"'+r.sku+'","'+ten+'","'+(r.dvt||'')+'",'+r.sl+','+(r.gia||0)+','+((rt*100).toFixed(0))+'%,'+gck+','+tt);
+  });
+  lines.push('');
+  lines.push('"","","","","","","Tổng thành tiền","",'+Math.round(tot));
+  lines.push('"","","","","","","'+ckLabel+'","",'+(-Math.round(ck)));
+  lines.push('"","","","","","","Sau chiết khấu","",'+Math.round(sau));
+  lines.push('"","","","","","","VAT (8%)","",'+Math.round(vat));
+  lines.push('"","","","","","","TỔNG PHẢI TRẢ","",'+Math.round(tong));
+  lines.push('');
+  lines.push('"'+dVN(Math.round(tong))+'"');
+  var csv='\uFEFF'+lines.join('\r\n');
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='BaoGia_GocNha_'+kh.replace(/\s+/g,'_').slice(0,14)+'_'+ng+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  sS('Xuất CSV thành công! Mở bằng Excel.','ok');
+}
 
 async function xPDF(){
   if(!rows.length){sS('Chưa có sản phẩm!','err');return;}
