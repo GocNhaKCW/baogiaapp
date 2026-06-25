@@ -361,7 +361,9 @@ function cSum() {
   document.getElementById('s2').textContent=F(sau);
   document.getElementById('s3').textContent=F(vat);
   document.getElementById('s4').textContent=F(tong);
-  document.getElementById('cb').textContent=(ar*100).toFixed(0)+'%';
+  // Hiển thị CK badge
+  var ckPct = rows.some(function(r){return r.ck!==null;}) ? 'Nhiều mức' : (ar*100).toFixed(0)+'%';
+  document.getElementById('cb').textContent=ckPct;
   document.getElementById('bc').textContent='Bằng chữ: '+dVN(Math.round(tong));
   ckN(tot); syncTT(tong);
 }
@@ -424,7 +426,7 @@ function saveBG(){
   localStorage.setItem(LS_KEY,JSON.stringify(list)); rSaved();
   var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2));
   a.download='BaoGia_'+kh.replace(/\s+/g,'_').slice(0,16)+'_'+nv.replace(/\s+/g,'_').slice(0,10)+'_'+ng+'.json';
   a.click();
   sS('Đã lưu: '+name,'ok');
