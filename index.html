@@ -497,8 +497,8 @@ function bA4(){
     var giaDvSauCK=Math.round((r.gia||0)*(1-rt));
     var tt=Math.round((r.gia||0)*(r.sl||0));
     var tl=(r.ten||'').split('\n').map(function(l,j){return j===0?'<strong>'+l+'</strong>':'<span style="color:#666;font-size:7pt">'+l+'</span>';}).join('<br>');
-    var im1=r.img1?'<img src="'+r.img1+'" style="width:52px;height:52px;object-fit:cover;border-radius:3px;border:.5px solid #ddd">':noImg;
-    var im2=r.img2?'<img src="'+r.img2+'" style="width:52px;height:52px;object-fit:cover;border-radius:3px;border:.5px solid #ddd">':noImg;
+    var im1=r.img1?'<img src="'+r.img1+'" style="width:44px;height:44px;object-fit:cover;border-radius:3px;border:.5px solid #ddd">':noImg;
+    var im2=r.img2?'<img src="'+r.img2+'" style="width:44px;height:44px;object-fit:cover;border-radius:3px;border:.5px solid #ddd">':noImg;
     pr+='<tr style="'+(i%2===1?'background:#fafafa;':'')+'">'
       +'<td style="text-align:center;color:#999;font-size:8pt;padding:5px 3px">'+(i+1)+'</td>'
       +'<td style="font-size:7.5pt;color:#555;padding:5px 3px">'+r.sku+'</td>'
@@ -508,7 +508,8 @@ function bA4(){
       +'<td style="text-align:center;padding:5px 3px">'+((rt)*100).toFixed(0)+'%</td>'
       +'<td style="text-align:right;font-weight:600;padding:5px 3px;color:#166534">'+FN(giaDvSauCK)+'</td>'
       +'<td style="text-align:right;font-weight:700;padding:5px 3px">'+FN(tt)+'</td>'
-      +'<td style="padding:4px">'+im1+'</td>'
+      +'<td style="padding:3px">'+im1+'</td>'
+      +'<td style="padding:3px">'+im2+'</td>'
       +'<td style="padding:5px 3px;font-size:7.5pt;color:#555;vertical-align:top">'+(r.note||'')+'</td>'
       +'</tr>';
   });
@@ -552,8 +553,9 @@ function bA4(){
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:26px">CK</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:right;width:68px">Giá sau CK</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:right;width:72px">Thành tiền</th>'
-        +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:60px">Ảnh SP</th>'
-        +'<th style="padding:5px 3px;font-size:7pt;text-align:left;width:90px">Ghi chú</th>'
+        +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:50px">Ảnh SP</th>'
+        +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:50px">Ảnh KT</th>'
+        +'<th style="padding:5px 3px;font-size:7pt;text-align:left;width:70px">Ghi chú</th>'
       +'</tr></thead><tbody>'+pr+'</tbody></table>'
     +'<div style="display:flex;gap:12px;margin-bottom:11px">'
       +'<div style="flex:1;background:#f9f9f9;border:.5px solid #e5e7eb;border-radius:3px;padding:9px 12px;font-size:8pt">'
