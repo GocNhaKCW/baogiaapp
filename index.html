@@ -38,9 +38,8 @@ textarea{resize:vertical}
 .ptbl td textarea{min-height:40px;width:100%;resize:vertical}
 .tr{text-align:right}
 .gck{background:#fefce8;font-weight:600}
-.img-box{width:76px;height:76px;border-radius:6px;border:2px dashed #d1d5db;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden}
-.img-box:focus{outline:none;border-color:#2d6a4f;box-shadow:0 0 0 3px rgba(45,106,79,.2);border-style:solid}
-.img-box:hover{border-color:#2d6a4f!important;background:#f0fdf4!important;border-style:solid!important;cursor:copy!important}
+.img-box{width:50px;height:50px;border-radius:5px;border:1.5px dashed #d1d5db;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden}
+.img-box:focus{outline:none;border-color:#2d6a4f}
 .img-box img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
 .img-pair{display:flex;gap:4px}
 .img-hint{font-size:9px;color:#9ca3af;text-align:center;margin-top:2px}
@@ -211,13 +210,12 @@ function loadCSV(inp) {
     var h = lines[0].toLowerCase().split(',').map(function(s){return s.trim().replace(/[^a-z0-9]/g,'');});
     var iS = h.findIndex(function(x){return x.includes('sku')||x.includes('ma');});
     var iT = h.findIndex(function(x){return x.includes('ten')||x.includes('name');});
-    var iDVT = h.findIndex(function(x){return x.includes('don')||x.includes('dvt')||x.includes('unit');});
     var iG = h.findIndex(function(x){return x.includes('gia')||x.includes('price');});
     var n = 0;
     lines.slice(1).forEach(function(l) {
       var c = l.split(',');
       var s = (c[iS]||'').trim().toUpperCase();
-      if (s) { db[s] = {ten:(c[iT]||'').trim(), dvt:(iDVT>=0?(c[iDVT]||'').trim():''), gia:parseFloat((c[iG]||'').replace(/[^0-9.]/g,''))||0}; n++; }
+      if (s) { db[s] = {ten:(c[iT]||'').trim(), gia:parseFloat((c[iG]||'').replace(/[^0-9.]/g,''))||0}; n++; }
     });
     document.getElementById('dbs').innerHTML = '<span style="color:#059669">&#10003; '+n+' SKU đã nạp</span>';
     rTable();
@@ -238,14 +236,14 @@ function FN(n) { return Math.round(n).toLocaleString('vi-VN'); }
 function R(t) { return t>=50e6?0.15:t>=15e6?0.1:0; }
 
 function ckN(tot) {
-  var ti = [{l:'<15tr',r:0,a:tot<15e6},{l:'15–50tr',r:10,a:tot>=15e6&&tot<50e6},{l:'≥50tr→tối đa 15%',r:15,a:tot>=50e6}];
+  var ti = [{l:'<15tr',r:0,a:tot<15e6},{l:'15-50tr',r:10,a:tot>=15e6&&tot<50e6},{l:'50-100tr',r:15,a:tot>=50e6&&tot<100e6},{l:'≥100tr',r:20,a:tot>=100e6}];
   document.getElementById('ckn').innerHTML = '<b>CK tự động:</b> ' + ti.map(function(t){
     return '<span style="'+(t.a?'color:#059669;font-weight:700':'')+'">'+(t.a?'▶ ':'')+t.l+'→'+t.r+'%</span>';
   }).join(' | ') + ' <span style="color:#9ca3af;font-size:10px">| Nhập vào cột CK% để đặt mức riêng</span>';
 }
 
 function addRow() {
-  rows.push({id:Date.now(), sku:'', ten:'', dvt:'', sl:1, gia:0, ck:null, img1:'', img2:'', note:''});
+  rows.push({id:Date.now(), sku:'', ten:'', sl:1, gia:0, ck:null, img1:'', img2:'', note:''});
   rTable();
 }
 function delRow(id) { rows = rows.filter(function(r){return r.id!==id;}); rTable(); }
@@ -335,7 +333,6 @@ function rTable() {
       + '<td class="tr gck" style="font-size:11px">'+FN(giaDvSauCK)+' đ</td>'
       + '<td class="tr" style="font-weight:700;font-size:11px">'+FN(tt)+' đ</td>'
 
-      + '<td style="background:#fffbeb"><textarea oninput="upd('+r.id+',\'note\',this.value)" placeholder="Ghi chú nội bộ..." style="min-height:42px;font-size:10px;border:1px solid #fde68a;border-radius:4px;width:114px;resize:vertical;padding:3px">'+(r.note||'')+'</textarea></td>'
       + '<td><div class="img-pair">'
         + '<div><div class="img-box" id="ib_'+r.id+'_1" tabindex="0">'+img1+'</div><div class="img-hint">Ảnh SP</div></div>'
         + '<div><div class="img-box" id="ib_'+r.id+'_2" tabindex="0">'+img2+'</div><div class="img-hint">Ảnh KT</div></div>'
@@ -366,7 +363,8 @@ function cSum() {
   document.getElementById('s2').textContent=F(sau);
   document.getElementById('s3').textContent=F(vat);
   document.getElementById('s4').textContent=F(tong);
-  var ckPct=rows.some(function(r){return r.ck!==null;})?'Nhiều mức':(ar*100).toFixed(0)+'%';
+  // Hiển thị CK badge
+  var ckPct = rows.some(function(r){return r.ck!==null;}) ? 'Nhiều mức' : (ar*100).toFixed(0)+'%';
   document.getElementById('cb').textContent=ckPct;
   document.getElementById('bc').textContent='Bằng chữ: '+dVN(Math.round(tong));
   ckN(tot); syncTT(tong);
@@ -458,7 +456,7 @@ function applyData(d){
   document.getElementById('bd').value=kh.ngay||'';
   document.getElementById('nv').value=kh.nv||'';
   document.getElementById('sbg').value=kh.sobg||'';
-  rows=(d.rows||[]).map(function(r){return Object.assign({dvt:'',note:''},r);});
+  rows=(d.rows||[]).map(function(r){return Object.assign({note:''},r);});
   ttRows=(d.ttRows||[]).map(function(r){return Object.assign({},r);});
   document.getElementById('dktt').value=d.dktt||'';
   rTable();rTT();cSum();
@@ -497,8 +495,8 @@ function bA4(){
     var giaDvSauCK=Math.round((r.gia||0)*(1-rt));
     var tt=Math.round((r.gia||0)*(r.sl||0));
     var tl=(r.ten||'').split('\n').map(function(l,j){return j===0?'<strong>'+l+'</strong>':'<span style="color:#666;font-size:7pt">'+l+'</span>';}).join('<br>');
-    var im1=r.img1?'<img src="'+r.img1+'" style="width:44px;height:44px;object-fit:cover;border-radius:3px;border:.5px solid #ddd">':noImg;
-    var im2=r.img2?'<img src="'+r.img2+'" style="width:44px;height:44px;object-fit:cover;border-radius:3px;border:.5px solid #ddd">':noImg;
+    var im1=r.img1?'<img src="'+r.img1+'" style="width:52px;height:52px;object-fit:cover;border-radius:3px;border:.5px solid #ddd">':noImg;
+    var im2=r.img2?'<img src="'+r.img2+'" style="width:52px;height:52px;object-fit:cover;border-radius:3px;border:.5px solid #ddd">':noImg;
     pr+='<tr style="'+(i%2===1?'background:#fafafa;':'')+'">'
       +'<td style="text-align:center;color:#999;font-size:8pt;padding:5px 3px">'+(i+1)+'</td>'
       +'<td style="font-size:7.5pt;color:#555;padding:5px 3px">'+r.sku+'</td>'
@@ -508,8 +506,8 @@ function bA4(){
       +'<td style="text-align:center;padding:5px 3px">'+((rt)*100).toFixed(0)+'%</td>'
       +'<td style="text-align:right;font-weight:600;padding:5px 3px;color:#166534">'+FN(giaDvSauCK)+'</td>'
       +'<td style="text-align:right;font-weight:700;padding:5px 3px">'+FN(tt)+'</td>'
-      +'<td style="padding:3px">'+im1+'</td>'
-      +'<td style="padding:3px">'+im2+'</td>'
+      +'<td style="padding:4px">'+im1+'</td>'
+      +'<td style="padding:4px">'+im2+'</td>'
       +'<td style="padding:5px 3px;font-size:7.5pt;color:#555;vertical-align:top">'+(r.note||'')+'</td>'
       +'</tr>';
   });
@@ -553,8 +551,8 @@ function bA4(){
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:26px">CK</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:right;width:68px">Giá sau CK</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:right;width:72px">Thành tiền</th>'
-        +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:50px">Ảnh SP</th>'
-        +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:50px">Ảnh KT</th>'
+        +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:54px">Ảnh SP</th>'
+        +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:54px">Ảnh KT</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:left;width:70px">Ghi chú</th>'
       +'</tr></thead><tbody>'+pr+'</tbody></table>'
     +'<div style="display:flex;gap:12px;margin-bottom:11px">'
@@ -564,7 +562,7 @@ function bA4(){
       +'</div>'
       +'<div style="width:230px"><table style="width:100%;font-size:8.5pt;border-collapse:collapse">'
         +'<tr><td style="padding:3px 4px;color:#666">Tổng tiền hàng</td><td style="text-align:right;padding:3px 4px">'+FN(v.tot)+' đ</td></tr>'
-        +'<tr><td style="padding:3px 4px;color:#666">'+(function(){var allSame=rows.every(function(r){return r.ck===rows[0].ck;});return'Chiết khấu'+'</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>'
+        +'<tr><td style="padding:3px 4px;color:#666">Chiết khấu</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>'
         +'<tr><td style="padding:3px 4px;color:#666">Sau chiết khấu</td><td style="text-align:right;padding:3px 4px">'+FN(v.sau)+' đ</td></tr>'
         +'<tr><td style="padding:3px 4px;color:#666">VAT (8%)</td><td style="text-align:right;padding:3px 4px">'+FN(v.vat)+' đ</td></tr>'
         +'<tr style="border-top:1.5px solid #2d6a4f"><td style="padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">TỔNG PHẢI TRẢ</td><td style="text-align:right;padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">'+FN(v.tong)+' đ</td></tr>'
@@ -659,7 +657,7 @@ async function xPDF(){
 function sS(m,t){var el=document.getElementById('sta');el.textContent=m;el.className='sta '+t;if(t==='ok')setTimeout(function(){el.className='sta';},4000);}
 
 function bgMoi() {
-  if(!confirm('Tạo báo giá mới?\nNhớ bấm "Lưu báo giá" trước nếu chưa lưu!')) return;
+  if(!confirm('Tạo báo giá mới?\nNhớ bấm "Lưu báo giá" trước!')) return;
   document.getElementById('kt').value='';
   document.getElementById('kd').value='';
   document.getElementById('km').value='';
@@ -676,7 +674,6 @@ function bgMoi() {
   rTable();rTT();cSum();
   sS('Đã tạo báo giá mới!','ok');
 }
-
 // Init
 document.getElementById('bd').value=new Date().toISOString().split('T')[0];
 document.getElementById('dktt').value='• Báo giá đã bao gồm 8% VAT, chưa bao gồm phí vận chuyển.\n• Hàng đặt: thời gian giao 35–45 ngày kể từ ngày nhận tạm ứng. Hàng sẵn kho: 2–5 ngày.\n• Báo giá hiệu lực 7 ngày kể từ ngày phát hành.';
@@ -686,7 +683,7 @@ var d=new Date();
 document.getElementById('sbg').value='BG-'+d.getFullYear()+(d.getMonth()+1+'').padStart(2,'0')+'-'+String(Math.floor(Math.random()*900)+100);
 addTT('Tạm ứng khi đặt hàng',50,0);
 addTT('Thanh toán trước khi nhận hàng',50,0);
-addRow();addRow();rTable();rTT();cSum();rSaved();
+addRow();addRow();cSum();rSaved();
 </script>
 </body>
 </html>
