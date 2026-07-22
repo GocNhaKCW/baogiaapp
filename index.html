@@ -564,7 +564,7 @@ function bA4(){
       +'</div>'
       +'<div style="width:230px"><table style="width:100%;font-size:8.5pt;border-collapse:collapse">'
         +'<tr><td style="padding:3px 4px;color:#666">Tổng tiền hàng</td><td style="text-align:right;padding:3px 4px">'+FN(v.tot)+' đ</td></tr>'
-        +'<tr><td style="padding:3px 4px;color:#666">'+(function(){var allSame=rows.every(function(r){return r.ck===rows[0].ck;});return allSame?'Chiết khấu ('+(v.ar*100).toFixed(0)+'%)':'Chiết khấu';})()+'</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>'
+        +'<tr><td style="padding:3px 4px;color:#666">''Chiết khấu</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>'
         +'<tr><td style="padding:3px 4px;color:#666">Sau chiết khấu</td><td style="text-align:right;padding:3px 4px">'+FN(v.sau)+' đ</td></tr>'
         +'<tr><td style="padding:3px 4px;color:#666">VAT (8%)</td><td style="text-align:right;padding:3px 4px">'+FN(v.vat)+' đ</td></tr>'
         +'<tr style="border-top:1.5px solid #2d6a4f"><td style="padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">TỔNG PHẢI TRẢ</td><td style="text-align:right;padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">'+FN(v.tong)+' đ</td></tr>'
@@ -638,16 +638,16 @@ async function xPDF(){
   if(!rows.length){sS('Chưa có sản phẩm!','err');return;}
   sS('Đang tạo PDF...','ok');
   var tmp=document.createElement('div');
-  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:810px;background:#fff;z-index:-1';
+  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:1060px;background:#fff;z-index:-1';
   tmp.innerHTML=bA4();document.body.appendChild(tmp);
   await new Promise(function(r){setTimeout(r,1000);});
   try{
     var el=tmp.querySelector('#a4');
-    var cv=await html2canvas(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',width:810,windowWidth:810});
+    var cv=await html2canvas(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff',width:1060,windowWidth:1060});
     var jsPDF=window.jspdf.jsPDF;
     var pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     var iw=210,ih=cv.height/cv.width*210;
-    if(ih<=297){pdf.addImage(cv.toDataURL('image/jpeg',.93),'JPEG',0,0,iw,ih);}
+    if(ih<=210){pdf.addImage(cv.toDataURL('image/jpeg',.93),'JPEG',0,0,iw,ih);}
     else{var ph=297,ra=cv.width/iw,y=0;while(y<cv.height){var sh=Math.min(ph*ra,cv.height-y);var pc=document.createElement('canvas');pc.width=cv.width;pc.height=sh;pc.getContext('2d').drawImage(cv,0,y,cv.width,sh,0,0,cv.width,sh);if(y>0)pdf.addPage();pdf.addImage(pc.toDataURL('image/jpeg',.93),'JPEG',0,0,iw,sh/ra);y+=sh;}}
     var v=getVars();
     pdf.save('BaoGia_GocNha_'+v.kh.replace(/\s+/g,'_').slice(0,14)+'_'+(v.nv.replace(/\s+/g,'_').slice(0,10)||'')+'_'+(document.getElementById('bd').value||new Date().toISOString().split('T')[0])+'.pdf');
