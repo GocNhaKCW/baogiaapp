@@ -564,7 +564,7 @@ function bA4(){
       +'</div>'
       +'<div style="width:230px"><table style="width:100%;font-size:8.5pt;border-collapse:collapse">'
         +'<tr><td style="padding:3px 4px;color:#666">Tổng tiền hàng</td><td style="text-align:right;padding:3px 4px">'+FN(v.tot)+' đ</td></tr>'
-        +'<tr><td style="padding:3px 4px;color:#666">'+(function(){var allSame=rows.every(function(r){return r.ck===rows[0].ck;});return allSame?'Chiết khấu ('+(v.ar*100).toFixed(0)+'%)':'Chiết khấu';})()+'</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>'
+        +'<tr><td style="padding:3px 4px;color:#666">'+(function(){var allSame=rows.every(function(r){return r.ck===rows[0].ck;});return'Chiết khấu'+'</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>'
         +'<tr><td style="padding:3px 4px;color:#666">Sau chiết khấu</td><td style="text-align:right;padding:3px 4px">'+FN(v.sau)+' đ</td></tr>'
         +'<tr><td style="padding:3px 4px;color:#666">VAT (8%)</td><td style="text-align:right;padding:3px 4px">'+FN(v.vat)+' đ</td></tr>'
         +'<tr style="border-top:1.5px solid #2d6a4f"><td style="padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">TỔNG PHẢI TRẢ</td><td style="text-align:right;padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">'+FN(v.tong)+' đ</td></tr>'
