@@ -510,6 +510,7 @@ function bA4(){
       +'<td style="text-align:right;font-weight:700;padding:5px 3px">'+FN(tt)+'</td>'
       +'<td style="padding:4px">'+im1+'</td>'
       +'<td style="padding:4px">'+im2+'</td>'
+      +'<td style="padding:5px 3px;font-size:7.5pt;color:#555;vertical-align:top">'+(r.note||'')+'</td>'
       +'</tr>';
   });
   var ttH=ttRows.length?ttRows.map(function(r,i){return '<tr><td style="padding:3px 4px;color:#555">Đợt '+(i+1)+': '+r.label+'</td><td style="text-align:right;padding:3px 4px;font-weight:600">'+FN(r.amt||0)+' đ</td><td style="text-align:center;padding:3px 4px;color:#2d6a4f">'+(r.pct?r.pct+'%':'')+'</td></tr>';}).join('')
@@ -554,6 +555,7 @@ function bA4(){
         +'<th style="padding:5px 3px;font-size:7pt;text-align:right;width:72px">Thành tiền</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:54px">Ảnh SP</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:54px">Ảnh KT</th>'
+        +'<th style="padding:5px 3px;font-size:7pt;text-align:left;width:80px">Ghi chú</th>'
       +'</tr></thead><tbody>'+pr+'</tbody></table>'
     +'<div style="display:flex;gap:12px;margin-bottom:11px">'
       +'<div style="flex:1;background:#f9f9f9;border:.5px solid #e5e7eb;border-radius:3px;padding:9px 12px;font-size:8pt">'
