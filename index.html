@@ -235,10 +235,10 @@ function dlMau() {
 
 function F(n) { return Math.round(n).toLocaleString('vi-VN') + ' đ'; }
 function FN(n) { return Math.round(n).toLocaleString('vi-VN'); }
-function R(t) { return t>=100e6?0.2:t>=50e6?0.15:t>=15e6?0.1:0; }
+function R(t) { return t>=50e6?0.15:t>=15e6?0.1:0; }
 
 function ckN(tot) {
-  var ti = [{l:'<15tr',r:0,a:tot<15e6},{l:'15-50tr',r:10,a:tot>=15e6&&tot<50e6},{l:'50-100tr',r:15,a:tot>=50e6&&tot<100e6},{l:'≥100tr',r:20,a:tot>=100e6}];
+  var ti = [{l:'<15tr',r:0,a:tot<15e6},{l:'15–50tr',r:10,a:tot>=15e6&&tot<50e6},{l:'≥50tr→tối đa 15%',r:15,a:tot>=50e6}];
   document.getElementById('ckn').innerHTML = '<b>CK tự động:</b> ' + ti.map(function(t){
     return '<span style="'+(t.a?'color:#059669;font-weight:700':'')+'">'+(t.a?'▶ ':'')+t.l+'→'+t.r+'%</span>';
   }).join(' | ') + ' <span style="color:#9ca3af;font-size:10px">| Nhập vào cột CK% để đặt mức riêng</span>';
