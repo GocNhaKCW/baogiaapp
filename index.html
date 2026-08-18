@@ -134,7 +134,6 @@ textarea{resize:vertical}
       <th style="width:88px;background:#fefce8;color:#92400e">Giá sau CK</th>
       <th style="width:88px">Thành tiền</th>
       <th style="width:108px">Ảnh SP | KT</th>
-      <th style="width:120px;background:#fefce8;color:#92400e">Note nội bộ</th>
       <th style="width:24px"></th>
     </tr></thead>
     <tbody id="tb"></tbody>
@@ -243,7 +242,7 @@ function ckN(tot) {
 }
 
 function addRow() {
-  rows.push({id:Date.now(), sku:'', ten:'', sl:1, gia:0, ck:null, img1:'', img2:'', note:''});
+  rows.push({id:Date.now(), sku:'', ten:'', sl:1, gia:0, ck:null, img1:'', img2:''});
   rTable();
 }
 function delRow(id) { rows = rows.filter(function(r){return r.id!==id;}); rTable(); }
@@ -337,7 +336,6 @@ function rTable() {
         + '<div><div class="img-box" id="ib_'+r.id+'_1" tabindex="0">'+img1+'</div><div class="img-hint">Ảnh SP</div></div>'
         + '<div><div class="img-box" id="ib_'+r.id+'_2" tabindex="0">'+img2+'</div><div class="img-hint">Ảnh KT</div></div>'
       + '</div></td>'
-      + '<td style="background:#fffbeb"><textarea oninput="upd('+r.id+',\'note\',this.value)" placeholder="Ghi chú nội bộ..." style="min-height:42px;font-size:10px;border:1px solid #fde68a;border-radius:4px;width:114px;resize:vertical;padding:3px">'+(r.note||'')+'</textarea></td>'
       + '<td><button class="delb" onclick="delRow('+r.id+')">&#10005;</button></td>'
       + '</tr>';
   });
@@ -456,7 +454,7 @@ function applyData(d){
   document.getElementById('bd').value=kh.ngay||'';
   document.getElementById('nv').value=kh.nv||'';
   document.getElementById('sbg').value=kh.sobg||'';
-  rows=(d.rows||[]).map(function(r){return Object.assign({note:''},r);});
+  rows=(d.rows||[]).map(function(r){return Object.assign({},r);});
   ttRows=(d.ttRows||[]).map(function(r){return Object.assign({},r);});
   document.getElementById('dktt').value=d.dktt||'';
   rTable();rTT();cSum();
@@ -508,7 +506,6 @@ function bA4(){
       +'<td style="text-align:right;font-weight:700;padding:5px 3px">'+FN(tt)+'</td>'
       +'<td style="padding:4px">'+im1+'</td>'
       +'<td style="padding:4px">'+im2+'</td>'
-      +'<td style="padding:5px 3px;font-size:7.5pt;color:#555;vertical-align:top">'+(r.note||'')+'</td>'
       +'</tr>';
   });
   var ttH=ttRows.length?ttRows.map(function(r,i){return '<tr><td style="padding:3px 4px;color:#555">Đợt '+(i+1)+': '+r.label+'</td><td style="text-align:right;padding:3px 4px;font-weight:600">'+FN(r.amt||0)+' đ</td><td style="text-align:center;padding:3px 4px;color:#2d6a4f">'+(r.pct?r.pct+'%':'')+'</td></tr>';}).join('')
@@ -553,7 +550,6 @@ function bA4(){
         +'<th style="padding:5px 3px;font-size:7pt;text-align:right;width:72px">Thành tiền</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:54px">Ảnh SP</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:54px">Ảnh KT</th>'
-        +'<th style="padding:5px 3px;font-size:7pt;text-align:left;width:70px">Ghi chú</th>'
       +'</tr></thead><tbody>'+pr+'</tbody></table>'
     +'<div style="display:flex;gap:12px;margin-bottom:11px">'
       +'<div style="flex:1;background:#f9f9f9;border:.5px solid #e5e7eb;border-radius:3px;padding:9px 12px;font-size:8pt">'
