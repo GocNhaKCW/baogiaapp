@@ -377,7 +377,16 @@ function getTong() {
   var tot=0; rows.forEach(function(r){tot+=(r.sl||0)*(r.gia||0);});
   var ar=R(tot),sau=0; rows.forEach(function(r){var rt=r.ck!==null?r.ck/100:ar;sau+=(r.sl||0)*(r.gia||0)*(1-rt);}); return sau*1.08;
 }
-function syncTT(tong) {}
+function syncTT(tong) {
+  if(tong<=0) return;
+  ttRows.forEach(function(r){
+    if(r.pct>0){
+      r.amt=Math.round(tong*r.pct/100);
+      var el=document.getElementById('ta_'+r.id);
+      if(el)el.value=FN(r.amt);
+    }
+  });
+}
 function updTT(id,f,v) {
   var r=ttRows.find(function(r){return r.id===id;}); if(!r)return; r[f]=v;
   var tong=getTong();
@@ -437,11 +446,10 @@ function saveBG(){
   if(idx>=0)list[idx]=data; else list.unshift(data);
   if(list.length>20)list.pop();
   localStorage.setItem(LS_KEY,JSON.stringify(list)); rSaved();
-  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   var a=document.createElement('a');
   a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2));
   a.download='BaoGia_'+kh.replace(/\s+/g,'_').slice(0,16)+'_'+nv.replace(/\s+/g,'_').slice(0,10)+'_'+ng+'.json';
-  a.click();
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
   sS('Đã lưu: '+name,'ok');
 }
 function loadSaved(i){var list=getSaved();var d=list[i];if(!d)return;applyData(d);sS('Đã mở: '+d.name,'ok');}
