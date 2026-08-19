@@ -171,7 +171,6 @@ textarea{resize:vertical}
 
 <div class="abar">
   <button class="btn btn-w" onclick="sw('x')">&#128065; Xem trước</button>
-  <button class="btn btn-xl" onclick="xExcel()">&#128202; Xuất Excel</button>
   <button class="btn btn-g" onclick="xPDF()">&#128196; Xuất PDF</button>
 </div>
 <div id="sta" class="sta"></div>
@@ -182,7 +181,6 @@ textarea{resize:vertical}
     <span style="font-size:12px;color:#6b7280">Preview A4</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-w btn-sm" onclick="sw('n')">&#8592; Sửa</button>
-      <button class="btn btn-xl btn-sm" onclick="xExcel()">Excel</button>
       <button class="btn btn-g btn-sm" onclick="xPDF()">PDF</button>
     </div>
   </div>
@@ -331,7 +329,7 @@ function rTable() {
       + '<td><textarea oninput="upd('+r.id+',&quot;ten&quot;,this.value)" placeholder="Tên SP&#10;Ghi chú: 10 White, 5 Black...">'+r.ten+'</textarea></td>'
       + '<td><input type="number" min="0" value="'+r.sl+'" oninput="upd('+r.id+',&quot;sl&quot;,+this.value)" class="tr" style="width:44px"></td>'
       + '<td><input type="number" min="0" value="'+(r.gia||'')+'" oninput="upd('+r.id+',&quot;gia&quot;,+this.value)" class="tr" placeholder="0" style="width:80px"></td>'
-      + '<td><input type="number" min="0" max="100" value="'+(r.ck!==null?r.ck:'')+'" oninput="updCK('+r.id+',this.value)" class="tr" placeholder="'+(ar*100).toFixed(0)+'" style="width:50px"></td>'
+      + '<td><input type="number" min="0" max="100" value="'+(r.ck!==null?r.ck:'')+'" oninput="updCK('+r.id+',this.value)" class="tr" placeholder="auto" style="width:50px"></td>'
       + '<td class="tr gck" style="font-size:11px">'+FN(giaDvSauCK)+' đ</td>'
       + '<td class="tr" style="font-weight:700;font-size:11px">'+FN(tt)+' đ</td>'
 
