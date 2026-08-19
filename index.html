@@ -266,6 +266,7 @@ function updCK(id, v) {
 function setupImg(el, id, slot) {
   if (el._s) return; el._s = true;
   el.setAttribute('tabindex','0');
+  el.addEventListener('mouseenter', function() { el.focus(); });
   el.addEventListener('click', function() {
     el.focus();
     var r = rows.find(function(r){return r.id===id;});
