@@ -386,16 +386,7 @@ function updTT(id,f,v) {
   var tong=getTong();
   if(f==='pct'&&v>=0){
     r.pct=v; r.amt=Math.round(tong*v/100);
-    var el=document.getElementById('ta_'+id);if(el)el.value=FN(r.amt);
-    if(ttRows.length>1){
-      var lastRow=ttRows[ttRows.length-1];
-      if(lastRow.id!==id){
-        var usedPct=0;ttRows.forEach(function(x){if(x.id!==lastRow.id)usedPct+=x.pct||0;});
-        lastRow.pct=Math.max(0,100-usedPct);lastRow.amt=Math.round(tong*lastRow.pct/100);
-        var elp=document.getElementById('tp_'+lastRow.id);if(elp)elp.value=lastRow.pct;
-        var ela=document.getElementById('ta_'+lastRow.id);if(ela)ela.value=lastRow.amt>0?FN(lastRow.amt):'';
-      }
-    }
+    var el=document.getElementById('ta_'+id);if(el)el.value=r.amt>0?FN(r.amt):'';
   }
   else if(f==='amt'){r.amt=parseInt((v+'').replace(/[^0-9]/g,''))||0; r.pct=tong>0?Math.round(r.amt/tong*100):0; var ep=document.getElementById('tp_'+id);if(ep)ep.value=r.pct;}
 }
