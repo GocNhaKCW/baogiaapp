@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;font-size:13px;background:#f3f4f6;color:#1a1a1a}
@@ -171,7 +170,6 @@ textarea{resize:vertical}
 
 <div class="abar">
   <button class="btn btn-w" onclick="sw('x')">&#128065; Xem trước</button>
-  <button class="btn btn-xl" onclick="xExcel()">&#128202; Xuất Excel</button>
   <button class="btn btn-g" onclick="xPDF()">&#128196; Xuất PDF</button>
 </div>
 <div id="sta" class="sta"></div>
@@ -182,7 +180,6 @@ textarea{resize:vertical}
     <span style="font-size:12px;color:#6b7280">Preview A4</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-w btn-sm" onclick="sw('n')">&#8592; Sửa</button>
-      <button class="btn btn-xl btn-sm" onclick="xExcel()">Excel</button>
       <button class="btn btn-g btn-sm" onclick="xPDF()">PDF</button>
     </div>
   </div>
@@ -373,8 +370,8 @@ function cSum() {
   ckN(tot); syncTT(tong);
 }
 
-function addTT(lb,pc,am) { ttRows.push({id:nextId(),label:lb||'',pct:pc||0,amt:am||0}); rTT(); }
-function delTT(id) { ttRows=ttRows.filter(function(r){return r.id!==id;}); rTT(); }
+function addTT(lb,pc,am) { ttRows.push({id:nextId(),label:lb||'',pct:pc||0,amt:am||0}); rTT(); recalcLastTT(); }
+function delTT(id) { ttRows=ttRows.filter(function(r){return r.id!==id;}); rTT(); recalcLastTT(); }
 function getTong() {
   var tot=0; rows.forEach(function(r){tot+=(r.sl||0)*(r.gia||0);});
   var ar=R(tot),sau=0; rows.forEach(function(r){var rt=r.ck!==null?r.ck/100:ar;sau+=(r.sl||0)*(r.gia||0)*(1-rt);}); return sau*1.08;
@@ -382,11 +379,29 @@ function getTong() {
 function syncTT(tong) {
   ttRows.forEach(function(r) { if(r.pct>0){r.amt=Math.round(tong*r.pct/100); var el=document.getElementById('ta_'+r.id); if(el)el.value=FN(r.amt);} });
 }
+function recalcLastTT(excludeId) {
+  if (ttRows.length < 2) return;
+  var last = ttRows[ttRows.length-1];
+  if (last.id === excludeId) return;
+  var sumOthers = 0;
+  for (var i=0;i<ttRows.length-1;i++) sumOthers += (ttRows[i].pct||0);
+  last.pct = Math.max(0, Math.round(100 - sumOthers));
+  var tong = getTong();
+  last.amt = Math.round(tong*last.pct/100);
+  var ep = document.getElementById('tp_'+last.id); if(ep) ep.value = last.pct||'';
+  var el = document.getElementById('ta_'+last.id); if(el) el.value = last.amt?FN(last.amt):'';
+}
 function updTT(id,f,v) {
-  var r=ttRows.find(function(r){return r.id===id;}); if(!r)return; r[f]=v;
+  var r=ttRows.find(function(r){return r.id===id;}); if(!r)return;
   var tong=getTong();
-  if(f==='pct'&&v>0){r.amt=Math.round(tong*v/100);var el=document.getElementById('ta_'+id);if(el)el.value=FN(r.amt);}
-  else if(f==='amt'){r.amt=parseInt((v+'').replace(/[^0-9]/g,''))||0; r.pct=tong>0?Math.round(r.amt/tong*100):0; var ep=document.getElementById('tp_'+id);if(ep)ep.value=r.pct;}
+  if(f==='pct'){
+    var pv=+v||0; r.pct=pv; r.amt=Math.round(tong*pv/100);
+    var el=document.getElementById('ta_'+id);if(el)el.value=r.amt?FN(r.amt):'';
+  } else if(f==='amt'){
+    r.amt=parseInt((v+'').replace(/[^0-9]/g,''))||0; r.pct=tong>0?Math.round(r.amt/tong*100):0;
+    var ep=document.getElementById('tp_'+id);if(ep)ep.value=r.pct||'';
+  } else { r[f]=v; }
+  recalcLastTT(id);
 }
 function rTT() {
   var html='';
@@ -425,19 +440,28 @@ function saveBG(){
     ttRows:ttRows.map(function(r){return Object.assign({},r);}),
     dktt:document.getElementById('dktt').value
   };
-  var list=getSaved(); var idx=list.findIndex(function(x){return x.name===name;});
-  if(idx>=0)list[idx]=data; else list.unshift(data);
-  if(list.length>20)list.pop();
-  localStorage.setItem(LS_KEY,JSON.stringify(list)); rSaved();
-  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;
-  a.download='BaoGia_'+kh.replace(/\s+/g,'_').slice(0,16)+'_'+nv.replace(/\s+/g,'_').slice(0,10)+'_'+ng+'.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download='BaoGia_'+kh.replace(/\s+/g,'_').slice(0,16)+'_'+nv.replace(/\s+/g,'_').slice(0,10)+'_'+ng+'.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  } catch(e) {
+    sS('Lỗi tải file: '+e.message,'err');
+    return;
+  }
+  try {
+    var list=getSaved(); var idx=list.findIndex(function(x){return x.name===name;});
+    if(idx>=0)list[idx]=data; else list.unshift(data);
+    if(list.length>20)list.pop();
+    localStorage.setItem(LS_KEY,JSON.stringify(list)); rSaved();
+  } catch(e) {
+    console.warn('Không lưu được vào danh sách nhanh (bộ nhớ trình duyệt đầy do ảnh):', e);
+  }
   sS('Đã lưu: '+name,'ok');
 }
 function loadSaved(i){var list=getSaved();var d=list[i];if(!d)return;applyData(d);sS('Đã mở: '+d.name,'ok');}
@@ -479,7 +503,7 @@ function newBG(){
   document.getElementById('ks').value='';
   document.getElementById('bd').value=new Date().toISOString().split('T')[0];
   document.getElementById('sbg').value='BG-'+new Date().getFullYear()+(new Date().getMonth()+1+'').padStart(2,'0')+'-'+String(Math.floor(Math.random()*900)+100);
-  document.getElementById('dktt').value='• Báo giá đã bao gồm 8% VAT, chưa bao gồm phí vận chuyển.\n• Hàng đặt: thời gian giao 35–45 ngày kể từ ngày nhận tạm ứng. Hàng sẵn kho: 2–5 ngày.\n• Báo giá hiệu lực 7 ngày kể từ ngày phát hành.';
+  document.getElementById('dktt').value='• Báo giá đã bao gồm 8% VAT, chưa bao gồm phí vận chuyển.\n• Hàng đặt: thời gian giao 35–45 ngày kể từ ngày nhận tạm ứng. Hàng sẵn kho: 2–7 ngày.\n• Báo giá hiệu lực 7 ngày kể từ ngày phát hành.';
   rows=[]; ttRows=[];
   addTT('Tạm ứng khi đặt hàng',50,0);
   addTT('Thanh toán trước khi nhận hàng',50,0);
@@ -603,57 +627,6 @@ function bA4(){
 
 function rPrev(){document.getElementById('pa').innerHTML=bA4();}
 
-function xExcel(){
-  if(!rows.length){sS('Chưa có sản phẩm!','err');return;}
-  var v=getVars();
-  var wb=XLSX.utils.book_new();
-  var wsData=[];
-  wsData.push(['BÁO GIÁ – GÓC NHÀ KITCHENWARE']);
-  wsData.push(['Số BG:',v.sobg,'Ngày:',v.ng,'Người lập:',v.nv]);
-  wsData.push([]);
-  wsData.push(['THÔNG TIN KHÁCH HÀNG']);
-  wsData.push(['Tên:',v.kh,'MST:',v.ms]);
-  wsData.push(['Địa chỉ:',v.dc,'Email:',v.em,'SĐT:',v.sd]);
-  wsData.push([]);
-  wsData.push(['#','SKU','Tên sản phẩm & phân loại','Ghi chú','SL','Giá lẻ (đ)','CK%','Giá sau CK (đ)','Thành tiền (đ)']);
-  for(var i=0;i<rows.length;i++){
-    var r=rows[i];
-    var rt=r.ck!==null?r.ck/100:v.ar;
-    var giaDvSauCK=Math.round((r.gia||0)*(1-rt));
-    var tt=Math.round((r.gia||0)*(r.sl||0));
-    wsData.push([i+1,r.sku,r.ten,r.note||'',r.sl,r.gia||0,((rt)*100).toFixed(0)+'%',giaDvSauCK,tt]);
-  }
-  wsData.push([]);
-  wsData.push(['','','','','','','Tổng thành tiền',Math.round(v.tot)]);
-  wsData.push(['','','','','','','Chiết khấu ('+Math.round(v.ar*100)+'%)',-Math.round(v.ck)]);
-  wsData.push(['','','','','','','Sau chiết khấu',Math.round(v.sau)]);
-  wsData.push(['','','','','','','VAT (8%)',Math.round(v.vat)]);
-  wsData.push(['','','','','','','TỔNG PHẢI TRẢ',Math.round(v.tong)]);
-  wsData.push([]);
-  wsData.push([dVN(Math.round(v.tong))]);
-  wsData.push([]);
-  wsData.push(['LỊCH THANH TOÁN']);
-  for(var j=0;j<ttRows.length;j++){
-    var tt2=ttRows[j];
-    wsData.push(['Đợt '+(j+1)+':',tt2.label,'Số tiền:',tt2.amt||0,'Tỷ lệ:',tt2.pct+'%']);
-  }
-  wsData.push([]);
-  wsData.push(['ĐIỀU KHOẢN']);
-  var dkLines=document.getElementById('dktt').value.split('\n');
-  for(var k=0;k<dkLines.length;k++){if(dkLines[k].trim())wsData.push([dkLines[k]]);}
-  wsData.push([]);
-  wsData.push(['CHUYỂN KHOẢN']);
-  wsData.push(['STK:','190 3099 455 1555','NH:','Techcombank – CN Đông Đô']);
-  wsData.push(['Tên TK:','CÔNG TY CỔ PHẦN GLOBO VISTA VIỆT NAM']);
-  var ws=XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols']=[{wch:4},{wch:16},{wch:38},{wch:18},{wch:6},{wch:14},{wch:10},{wch:14},{wch:16}];
-  XLSX.utils.book_append_sheet(wb,'Báo Giá',ws);
-  var bgd=document.getElementById('bd').value||new Date().toISOString().split('T')[0];
-  var fn='BaoGia_GocNha_'+v.kh.replace(/\s+/g,'_').slice(0,14)+'_'+bgd+'.xlsx';
-  XLSX.writeFile(wb,fn);
-  sS('Xuất Excel thành công!','ok');
-}
-
 
 async function xPDF(){
   if(!rows.length){sS('Chưa có sản phẩm!','err');return;}
@@ -681,7 +654,7 @@ function sS(m,t){var el=document.getElementById('sta');el.textContent=m;el.class
 
 // Init
 document.getElementById('bd').value=new Date().toISOString().split('T')[0];
-document.getElementById('dktt').value='• Báo giá đã bao gồm 8% VAT, chưa bao gồm phí vận chuyển.\n• Hàng đặt: thời gian giao 35–45 ngày kể từ ngày nhận tạm ứng. Hàng sẵn kho: 2–5 ngày.\n• Báo giá hiệu lực 7 ngày kể từ ngày phát hành.';
+document.getElementById('dktt').value='• Báo giá đã bao gồm 8% VAT, chưa bao gồm phí vận chuyển.\n• Hàng đặt: thời gian giao 35–45 ngày kể từ ngày nhận tạm ứng. Hàng sẵn kho: 2–7 ngày.\n• Báo giá hiệu lực 7 ngày kể từ ngày phát hành.';
 var snv=localStorage.getItem('gn_nv');if(snv)document.getElementById('nv').value=snv;
 document.getElementById('nv').addEventListener('input',function(){localStorage.setItem('gn_nv',this.value);});
 var d=new Date();
