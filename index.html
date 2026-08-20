@@ -429,6 +429,29 @@ function rSaved(){
     return '<span class="chip" onclick="loadSaved('+i+')" title="'+item.name+'">'+item.name.slice(0,28)+'<span onclick="event.stopPropagation();delSaved('+i+')" style="color:#9ca3af;margin-left:4px">✕</span></span>';
   }).join('');
 }
+function trimImgs(d){
+  var c=Object.assign({},d);
+  c.rows=(d.rows||[]).map(function(r){var rc=Object.assign({},r);rc.img1='';rc.img2='';return rc;});
+  return c;
+}
+function upsertList(list,d){
+  var l=list.slice(); var i=l.findIndex(function(x){return x.name===d.name;});
+  if(i>=0)l[i]=d; else l.unshift(d);
+  if(l.length>15)l=l.slice(0,15);
+  return l;
+}
+function saveToLocalList(data){
+  var list=getSaved();
+  try { localStorage.setItem(LS_KEY,JSON.stringify(upsertList(list,data))); return true; }
+  catch(e1) {}
+  try { localStorage.setItem(LS_KEY,JSON.stringify(upsertList(list,trimImgs(data)))); return 'noimg'; }
+  catch(e2) {}
+  try {
+    var lightList=list.map(trimImgs).slice(0,8);
+    localStorage.setItem(LS_KEY,JSON.stringify(upsertList(lightList,trimImgs(data))));
+    return 'noimg';
+  } catch(e3) { return false; }
+}
 function saveBG(){
   var kh=document.getElementById('kt').value||'Chưa đặt tên';
   var ng=document.getElementById('bd').value||new Date().toISOString().split('T')[0];
@@ -454,15 +477,11 @@ function saveBG(){
     sS('Lỗi tải file: '+e.message,'err');
     return;
   }
-  try {
-    var list=getSaved(); var idx=list.findIndex(function(x){return x.name===name;});
-    if(idx>=0)list[idx]=data; else list.unshift(data);
-    if(list.length>20)list.pop();
-    localStorage.setItem(LS_KEY,JSON.stringify(list)); rSaved();
-  } catch(e) {
-    console.warn('Không lưu được vào danh sách nhanh (bộ nhớ trình duyệt đầy do ảnh):', e);
-  }
-  sS('Đã lưu: '+name,'ok');
+  var result=saveToLocalList(data);
+  rSaved();
+  if(result===true) sS('Đã lưu: '+name,'ok');
+  else if(result==='noimg') sS('Đã lưu (file JSON đầy đủ, danh sách trên màn hình bỏ ảnh do bộ nhớ trình duyệt đầy): '+name,'ok');
+  else sS('Đã tải file JSON thành công, nhưng KHÔNG lưu được vào danh sách trên màn hình (bộ nhớ trình duyệt đầy). Dùng "Mở file" để mở lại file vừa tải.','err');
 }
 function loadSaved(i){var list=getSaved();var d=list[i];if(!d)return;applyData(d);sS('Đã mở: '+d.name,'ok');}
 function delSaved(i){var list=getSaved();list.splice(i,1);localStorage.setItem(LS_KEY,JSON.stringify(list));rSaved();}
@@ -609,7 +628,7 @@ function bA4(){
       +'</div>'
       +'<div style="width:230px"><table style="width:100%;font-size:8.5pt;border-collapse:collapse">'
         +'<tr><td style="padding:3px 4px;color:#666">Tổng tiền hàng</td><td style="text-align:right;padding:3px 4px">'+FN(v.tot)+' đ</td></tr>'
-        +'<tr><td style="padding:3px 4px;color:#666">Chiết khấu ('+(v.ar*100).toFixed(0)+'%)</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>'
+        +'<tr><td style="padding:3px 4px;color:#666">Chiết khấu</td><td style="text-align:right;padding:3px 4px;color:#2d6a4f">- '+FN(v.ck)+' đ</td></tr>'
         +'<tr><td style="padding:3px 4px;color:#666">Sau chiết khấu</td><td style="text-align:right;padding:3px 4px">'+FN(v.sau)+' đ</td></tr>'
         +'<tr><td style="padding:3px 4px;color:#666">VAT (8%)</td><td style="text-align:right;padding:3px 4px">'+FN(v.vat)+' đ</td></tr>'
         +'<tr style="border-top:1.5px solid #2d6a4f"><td style="padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">TỔNG PHẢI TRẢ</td><td style="text-align:right;padding:6px 4px;font-weight:700;color:#2d6a4f;font-size:10pt">'+FN(v.tong)+' đ</td></tr>'
