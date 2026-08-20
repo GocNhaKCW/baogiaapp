@@ -200,19 +200,35 @@ function sw(t) {
   if (t==='x') rPrev();
 }
 
+function parseCSVLine(line) {
+  var result=[], cur='', inQ=false;
+  for (var i=0;i<line.length;i++){
+    var ch=line[i];
+    if(inQ){
+      if(ch==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else inQ=false; }
+      else cur+=ch;
+    } else {
+      if(ch==='"') inQ=true;
+      else if(ch===','){result.push(cur);cur='';}
+      else cur+=ch;
+    }
+  }
+  result.push(cur);
+  return result;
+}
 function loadCSV(inp) {
   var file = inp.files[0]; if (!file) return;
   var r = new FileReader();
   r.onload = function(e) {
     var lines = e.target.result.split(/\r?\n/).filter(function(l){return l.trim();});
     db = {};
-    var h = lines[0].toLowerCase().split(',').map(function(s){return s.trim().replace(/[^a-z0-9]/g,'');});
+    var h = parseCSVLine(lines[0]).map(function(s){return s.toLowerCase().trim().replace(/[^a-z0-9]/g,'');});
     var iS = h.findIndex(function(x){return x.includes('sku')||x.includes('ma');});
     var iT = h.findIndex(function(x){return x.includes('ten')||x.includes('name');});
     var iG = h.findIndex(function(x){return x.includes('gia')||x.includes('price');});
     var n = 0;
     lines.slice(1).forEach(function(l) {
-      var c = l.split(',');
+      var c = parseCSVLine(l);
       var s = (c[iS]||'').trim().toUpperCase();
       if (s) { db[s] = {ten:(c[iT]||'').trim(), gia:parseFloat((c[iG]||'').replace(/[^0-9.]/g,''))||0}; n++; }
     });
@@ -613,7 +629,7 @@ function bA4(){
       +'<thead><tr style="background:#2d6a4f;color:#fff">'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:18px">#</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:left;width:58px">SKU</th>'
-        +'<th style="padding:5px 3px;font-size:7pt;text-align:left">Sản phẩm &amp; phân loại</th>'
+        +'<th style="padding:5px 3px;font-size:7pt;text-align:left;width:150px">Sản phẩm &amp; phân loại</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:center;width:22px">SL</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:right;width:62px">Giá lẻ (đ)</th>'
         +'<th style="padding:5px 3px;font-size:7pt;text-align:right;width:68px">Giá sau CK</th>'
