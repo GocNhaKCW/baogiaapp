@@ -3,9 +3,10 @@
  * Dán toàn bộ file này vào Google Apps Script (script.google.com) bằng tài khoản Google Workspace của công ty.
  * Báo giá được lưu thành file .json trong thư mục Drive "Báo giá Góc Nhà (app)" của tài khoản đó.
  *
- * ĐỔI MÃ PIN Ở DÒNG DƯỚI trước khi Triển khai. Khi có nhân viên nghỉ: đổi PIN → Lưu (không cần triển khai lại).
+ * MÃ PIN đặt trong: Cài đặt dự án (biểu tượng bánh răng) → Thuộc tính tập lệnh (Script properties) → thêm thuộc tính tên PIN.
+ * Khi có nhân viên nghỉ: chỉ cần sửa giá trị PIN ở đó → Lưu. Không cần sửa code, không cần triển khai lại.
  */
-const PIN = 'DOI-MA-PIN-NAY';
+function pin_() { return PropertiesService.getScriptProperties().getProperty('PIN') || ''; }
 
 const FOLDER_NAME = 'Báo giá Góc Nhà (app)';
 
@@ -26,7 +27,8 @@ function doGet() { return out_({ ok: true, app: 'kho-bao-gia-goc-nha' }); }
 function doPost(e) {
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (x) { return out_({ ok: false, err: 'bad_request' }); }
-  if (String(req.pin || '') !== PIN) return out_({ ok: false, err: 'pin' });
+  const PIN = pin_();
+  if (!PIN || String(req.pin || '') !== PIN) return out_({ ok: false, err: 'pin' });
   const folder = folder_();
   const lock = LockService.getScriptLock();
   try {
