@@ -47,7 +47,13 @@ function sub_(file, folder, kh, sobg, hint) {
   return sub;
 }
 
-function doGet() { return out_({ ok: true, app: 'kho-bao-gia-goc-nha' }); }
+const SCRIPT_VERSION = '2026-10-17i';
+// Mở link /exec trên trình duyệt để kiểm tra nhanh cấu hình
+function doGet() {
+  const r = { ok: true, app: 'kho-bao-gia-goc-nha', version: SCRIPT_VERSION, pin_da_dat: !!pin_() };
+  try { const f = folder_(); r.thu_muc = f.getName(); } catch (e) { r.thu_muc = 'LỖI: ' + e.message; }
+  return out_(r);
+}
 
 function doPost(e) {
   let req;
