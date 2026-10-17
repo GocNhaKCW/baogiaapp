@@ -29,13 +29,21 @@ function inFolder_(file, folder) { const ps = file.getParents(); while (ps.hasNe
 function meta_(file) { try { return JSON.parse(file.getDescription() || '{}'); } catch (e) { return {}; } }
 function subName_(kh, sobg) { return String((kh || 'Khách hàng') + (sobg ? ' – ' + sobg : '')).replace(/[\\\/:*?"<>|]/g, '-').slice(0, 120); }
 
-// Thư mục con của 1 báo giá (tạo nếu chưa có, đổi tên theo khách/số BG hiện tại)
-function sub_(file, folder, kh, sobg) {
-  const m = meta_(file);
-  let sub = null;
-  if (m.sub) { try { sub = DriveApp.getFolderById(m.sub); if (sub.isTrashed()) sub = null; } catch (e) { sub = null; } }
-  if (!sub) sub = folder.createFolder(subName_(kh, sobg));
-  else if (kh !== undefined && sub.getName() !== subName_(kh, sobg)) sub.setName(subName_(kh, sobg));
+// Thư mục con của 1 báo giá: luôn dùng lại đúng 1 thư mục.
+// Thứ tự tìm: id app gửi lên → id lưu trong Script Properties (đọc tức thì, không bị trễ như mô tả file)
+//             → id trong mô tả file → thư mục cùng tên → mới tạo.
+function sub_(file, folder, kh, sobg, hint) {
+  const props = PropertiesService.getScriptProperties(), key = 'SUB_' + file.getId();
+  const tryId = function (id) { if (!id) return null; try { const f = DriveApp.getFolderById(id); return (!f.isTrashed() && inFolder_(f, folder)) ? f : null; } catch (e) { return null; } };
+  let sub = tryId(hint) || tryId(props.getProperty(key)) || tryId(meta_(file).sub);
+  if (!sub && kh !== undefined) { const it = folder.getFoldersByName(subName_(kh, sobg)); while (it.hasNext()) { const f = it.next(); if (!f.isTrashed()) { sub = f; break; } } }
+  if (!sub) {
+    if (kh === undefined) { const m = meta_(file); kh = m.kh || ''; sobg = m.sobg || ''; }
+    const it = folder.getFoldersByName(subName_(kh, sobg));
+    sub = it.hasNext() ? it.next() : folder.createFolder(subName_(kh, sobg));
+  }
+  if (kh !== undefined && sub.getName() !== subName_(kh, sobg)) sub.setName(subName_(kh, sobg));
+  props.setProperty(key, sub.getId());
   return sub;
 }
 
@@ -80,7 +88,7 @@ function doPost(e) {
       } else {
         f = folder.createFile((d.name || 'Bao gia') + '.json', content, 'application/json');
       }
-      const sub = sub_(f, folder, kh.ten || '', kh.sobg || '');
+      const sub = sub_(f, folder, kh.ten || '', kh.sobg || '', req.sub);
       f.setDescription(JSON.stringify({ kh: kh.ten || '', sobg: kh.sobg || '', nv: kh.nv || '', ngay: kh.ngay || '', tong: req.tong || 0, by: req.by || '', sub: sub.getId() }));
       return out_({ ok: true, id: f.getId(), sub: sub.getId(), updated: DriveApp.getFileById(f.getId()).getLastUpdated().getTime() });
     }
@@ -88,7 +96,7 @@ function doPost(e) {
       lock.waitLock(20000);
       const f = DriveApp.getFileById(req.id);
       if (!inFolder_(f, folder) || f.isTrashed()) return out_({ ok: false, err: 'not_found' });
-      const sub = sub_(f, folder);
+      const sub = sub_(f, folder, undefined, undefined, req.sub);
       const name = String(req.name || 'file').replace(/[\\\/:*?"<>|]/g, '-');
       const old = sub.getFilesByName(name);
       while (old.hasNext()) old.next().setTrashed(true);   // bản cũ vào Thùng rác (khôi phục được 30 ngày)
@@ -102,7 +110,9 @@ function doPost(e) {
       if (!inFolder_(f, folder)) return out_({ ok: false, err: 'not_found' });
       const m = meta_(f);
       f.setTrashed(true); // vào Thùng rác Drive, khôi phục được trong 30 ngày
-      if (m.sub) { try { DriveApp.getFolderById(m.sub).setTrashed(true); } catch (e) {} }
+      const sid = PropertiesService.getScriptProperties().getProperty('SUB_' + f.getId()) || m.sub;
+      if (sid) { try { DriveApp.getFolderById(sid).setTrashed(true); } catch (e) {} }
+      PropertiesService.getScriptProperties().deleteProperty('SUB_' + f.getId());
       return out_({ ok: true });
     }
     return out_({ ok: false, err: 'unknown_action' });
