@@ -47,7 +47,34 @@ function sub_(file, folder, kh, sobg, hint) {
   return sub;
 }
 
-const SCRIPT_VERSION = '2026-10-17i';
+const SCRIPT_VERSION = '2026-10-17l';
+// ===== Thư mục MẪU (app đọc mẫu Word từ đây; sửa mẫu ngay trên Drive) =====
+const TPL_FOLDER_NAME = '_MẪU HỢP ĐỒNG & CHỨNG TỪ (app dùng)';
+const TPL_README = 'ĐỌC TRƯỚC KHI SỬA MẪU.txt';
+const TPL_README_TEXT = [
+  'Các file "Mẫu ….docx" trong thư mục này là mẫu app báo giá dùng để tạo Hợp đồng, Đề nghị tạm ứng, Đề nghị thanh toán, Biên bản giao nhận.',
+  'Sửa mẫu: mở file trên Drive (Google Tài liệu mở được file .docx) hoặc tải về sửa bằng Word rồi tải lên thay đúng TÊN FILE cũ. Lần xuất sau app tự dùng mẫu mới.',
+  'KHÔNG đổi tên file. KHÔNG bấm "Lưu dưới dạng Google Tài liệu" (app chỉ đọc file .docx).',
+  'GIỮ NGUYÊN các chữ trong ngoặc nhọn { } – đó là chỗ app tự điền:',
+  '  {kh} tên khách · {kh_upper} tên khách IN HOA · {dc} địa chỉ · {mst} MST · {sdt} điện thoại · {em} email',
+  '  {dd} người đại diện · {cv} chức vụ · {uq} số giấy uỷ quyền · {uqd} ngày uỷ quyền · {stk} số TK · {nh} ngân hàng',
+  '  {dcg} địa chỉ giao hàng · {nguoinhan} người nhận · {sdtnhan} SĐT người nhận · {sd1}-{sd2} / {dh1}-{dh2} số ngày giao',
+  '  {tong} tổng tiền · {tong_chu} tổng bằng chữ · {sau} tiền trước thuế · {vat} tiền thuế · {vat_pct} % VAT · {ky_a} tên người ký bên A',
+  '  {#dot} … {/dot}: lặp từng đợt thanh toán, bên trong dùng {n} (số lần) và {mota} (nội dung đợt)',
+  '  {#items} … {/items}: lặp từng sản phẩm trong bảng, dùng {stt} {ten} {kt} {mau} {dvt} {sl} {dg} {tt} {gc}',
+  '  Đề nghị tạm ứng / thanh toán: {pct} %, {tien} số tiền, {chu} bằng chữ, {mota} nội dung đợt, {noidung} nội dung chuyển khoản',
+  'Nếu mẫu bị lỗi (thiếu/sai ngoặc), app sẽ báo và tạm dùng mẫu dự phòng. Xoá file mẫu → lần xuất sau app tự cài lại mẫu gốc.'
+].join('\n');
+function tplFolder_() {
+  const props = PropertiesService.getScriptProperties(), root = folder_();
+  let f = null; const id = props.getProperty('TPL_FOLDER_ID');
+  if (id) { try { f = DriveApp.getFolderById(id); if (f.isTrashed()) f = null; } catch (e) { f = null; } }
+  if (!f) { const it = root.getFoldersByName(TPL_FOLDER_NAME); f = it.hasNext() ? it.next() : root.createFolder(TPL_FOLDER_NAME); props.setProperty('TPL_FOLDER_ID', f.getId()); }
+  if (!f.getFilesByName(TPL_README).hasNext()) f.createFile(TPL_README, TPL_README_TEXT, MimeType.PLAIN_TEXT);
+  return f;
+}
+function tplFile_(name) { const it = tplFolder_().getFilesByName(name); while (it.hasNext()) { const x = it.next(); if (!x.isTrashed()) return x; } return null; }
+
 // Mở link /exec trên trình duyệt để kiểm tra nhanh cấu hình
 function doGet() {
   const r = { ok: true, app: 'kho-bao-gia-goc-nha', version: SCRIPT_VERSION, pin_da_dat: !!pin_() };
@@ -109,6 +136,21 @@ function doPost(e) {
       const blob = Utilities.newBlob(Utilities.base64Decode(req.b64 || ''), req.mime || 'application/octet-stream', name);
       const nf = sub.createFile(blob);
       return out_({ ok: true, fileId: nf.getId(), url: nf.getUrl(), sub: sub.getId() });
+    }
+    if (req.action === 'tplinfo') {   // danh sách mẫu hiện có (tên → id, ngày sửa)
+      const f = tplFolder_(), it = f.getFiles(), list = {};
+      while (it.hasNext()) { const x = it.next(); if (!x.isTrashed()) list[x.getName()] = { id: x.getId(), updated: x.getLastUpdated().getTime(), mime: x.getMimeType() }; }
+      return out_({ ok: true, folder: f.getId(), files: list });
+    }
+    if (req.action === 'tplget') {
+      const x = tplFile_(req.name); if (!x) return out_({ ok: false, err: 'not_found' });
+      return out_({ ok: true, updated: x.getLastUpdated().getTime(), mime: x.getMimeType(), b64: Utilities.base64Encode(x.getBlob().getBytes()) });
+    }
+    if (req.action === 'tplput') {    // cài mẫu gốc lần đầu (không ghi đè mẫu đã có)
+      lock.waitLock(20000);
+      if (tplFile_(req.name)) return out_({ ok: true, existed: true });
+      tplFolder_().createFile(Utilities.newBlob(Utilities.base64Decode(req.b64 || ''), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', req.name));
+      return out_({ ok: true });
     }
     if (req.action === 'delete') {
       lock.waitLock(20000);
