@@ -47,7 +47,7 @@ function sub_(file, folder, kh, sobg, hint) {
   return sub;
 }
 
-const SCRIPT_VERSION = '2026-10-17l';
+const SCRIPT_VERSION = '2026-10-17m';
 // ===== Thư mục MẪU (app đọc mẫu Word từ đây; sửa mẫu ngay trên Drive) =====
 const TPL_FOLDER_NAME = '_MẪU HỢP ĐỒNG & CHỨNG TỪ (app dùng)';
 const TPL_README = 'ĐỌC TRƯỚC KHI SỬA MẪU.txt';
@@ -74,6 +74,23 @@ function tplFolder_() {
   return f;
 }
 function tplFile_(name) { const it = tplFolder_().getFilesByName(name); while (it.hasNext()) { const x = it.next(); if (!x.isTrashed()) return x; } return null; }
+// Nguồn mẫu: nếu đã dán link file mẫu riêng (Script Property TPLSRC_<tên mẫu>) thì dùng file đó, không thì dùng file trong thư mục MẪU
+function tplKey_(name) { return 'TPLSRC_' + Utilities.base64EncodeWebSafe(Utilities.newBlob(name).getBytes()); }
+function tplResolve_(name) {
+  const id = PropertiesService.getScriptProperties().getProperty(tplKey_(name));
+  if (id) { try { const f = DriveApp.getFileById(id); if (!f.isTrashed()) return { file: f, src: 'link' }; } catch (e) { return { file: null, src: 'link', err: 'Không mở được file mẫu đã dán link (kiểm tra quyền chia sẻ cho tài khoản công ty)' }; } }
+  const f = tplFile_(name); return { file: f, src: 'folder' };
+}
+function idFromLink_(s) { s = String(s || '').trim(); const m = s.match(/\/d\/([A-Za-z0-9_-]{20,})/) || s.match(/[?&]id=([A-Za-z0-9_-]{20,})/) || s.match(/^([A-Za-z0-9_-]{20,})$/); return m ? m[1] : ''; }
+// Google Tài liệu → xuất ra .docx; file .docx → lấy nguyên bản
+function tplBytes_(f) {
+  if (f.getMimeType() === MimeType.GOOGLE_DOCS) {
+    const r = UrlFetchApp.fetch('https://docs.google.com/document/d/' + f.getId() + '/export?format=docx', { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) throw new Error('Không xuất được Google Tài liệu sang Word (' + r.getResponseCode() + ')');
+    return r.getContent();
+  }
+  return f.getBlob().getBytes();
+}
 
 // Mở link /exec trên trình duyệt để kiểm tra nhanh cấu hình
 function doGet() {
@@ -137,14 +154,28 @@ function doPost(e) {
       const nf = sub.createFile(blob);
       return out_({ ok: true, fileId: nf.getId(), url: nf.getUrl(), sub: sub.getId() });
     }
-    if (req.action === 'tplinfo') {   // danh sách mẫu hiện có (tên → id, ngày sửa)
-      const f = tplFolder_(), it = f.getFiles(), list = {};
-      while (it.hasNext()) { const x = it.next(); if (!x.isTrashed()) list[x.getName()] = { id: x.getId(), updated: x.getLastUpdated().getTime(), mime: x.getMimeType() }; }
+    if (req.action === 'tplinfo') {   // nguồn & ngày sửa của từng mẫu
+      const f = tplFolder_(), list = {};
+      (req.names || []).forEach(function (n) {
+        const r = tplResolve_(n);
+        if (r.file) list[n] = { id: r.file.getId(), updated: r.file.getLastUpdated().getTime(), mime: r.file.getMimeType(), src: r.src, url: r.file.getUrl(), title: r.file.getName() };
+        else if (r.err) list[n] = { src: 'link', err: r.err };
+      });
       return out_({ ok: true, folder: f.getId(), files: list });
     }
     if (req.action === 'tplget') {
-      const x = tplFile_(req.name); if (!x) return out_({ ok: false, err: 'not_found' });
-      return out_({ ok: true, updated: x.getLastUpdated().getTime(), mime: x.getMimeType(), b64: Utilities.base64Encode(x.getBlob().getBytes()) });
+      const r = tplResolve_(req.name); if (!r.file) return out_({ ok: false, err: r.err || 'not_found' });
+      return out_({ ok: true, updated: r.file.getLastUpdated().getTime(), b64: Utilities.base64Encode(tplBytes_(r.file)) });
+    }
+    if (req.action === 'tplset') {    // dán link file mẫu riêng (để trống = dùng mẫu trong thư mục MẪU)
+      const props = PropertiesService.getScriptProperties(), key = tplKey_(req.name), id = idFromLink_(req.link);
+      if (!String(req.link || '').trim()) { props.deleteProperty(key); return out_({ ok: true, src: 'folder' }); }
+      if (!id) return out_({ ok: false, err: 'Link không hợp lệ' });
+      let f; try { f = DriveApp.getFileById(id); } catch (e) { return out_({ ok: false, err: 'Tài khoản công ty chưa mở được file này – hãy chia sẻ file cho tài khoản công ty (hoặc "Bất kỳ ai có đường liên kết")' }); }
+      const mt = f.getMimeType();
+      if (mt !== MimeType.GOOGLE_DOCS && mt !== MimeType.MICROSOFT_WORD && !/wordprocessingml/.test(mt)) return out_({ ok: false, err: 'File phải là Word (.docx) hoặc Google Tài liệu' });
+      props.setProperty(key, id);
+      return out_({ ok: true, src: 'link', title: f.getName() });
     }
     if (req.action === 'tplput') {    // cài mẫu gốc lần đầu (không ghi đè mẫu đã có)
       lock.waitLock(20000);
