@@ -24,7 +24,7 @@ function folder_() {
   props.setProperty('FOLDER_ID', f.getId());
   return f;
 }
-function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+function out_(o) { o.v = SCRIPT_VERSION; return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 function inFolder_(file, folder) { const ps = file.getParents(); while (ps.hasNext()) { if (ps.next().getId() === folder.getId()) return true; } return false; }
 function meta_(file) { try { return JSON.parse(file.getDescription() || '{}'); } catch (e) { return {}; } }
 function subName_(kh, sobg) { return String((kh || 'Khách hàng') + (sobg ? ' – ' + sobg : '')).replace(/[\\\/:*?"<>|]/g, '-').slice(0, 120); }
@@ -47,7 +47,7 @@ function sub_(file, folder, kh, sobg, hint) {
   return sub;
 }
 
-const SCRIPT_VERSION = '2026-10-17m';
+const SCRIPT_VERSION = '2026-10-19b';
 // ===== Thư mục MẪU (app đọc mẫu Word từ đây; sửa mẫu ngay trên Drive) =====
 const TPL_FOLDER_NAME = '_MẪU HỢP ĐỒNG & CHỨNG TỪ (app dùng)';
 const TPL_README = 'ĐỌC TRƯỚC KHI SỬA MẪU.txt';
